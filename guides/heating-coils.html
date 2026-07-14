@@ -128,8 +128,16 @@ body {
     z-index: 10;
 }
 #viewOptions .vo-title {
-    font-weight: 700; font-size: 0.92em; margin-bottom: 8px; color: var(--ink);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%;
+    font-weight: 700; font-size: 0.92em; margin: 0 0 8px; color: var(--ink);
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: inherit; text-align: left;
 }
+#viewOptions .vo-title .chev { color: var(--muted); transition: transform 0.15s; }
+#viewOptions.collapsed .vo-title { margin-bottom: 0; }
+#viewOptions.collapsed .vo-title .chev { transform: rotate(-90deg); }
+#viewOptions.collapsed #voBody { display: none; }
 #viewOptions label.row {
     display: flex; align-items: center; gap: 7px;
     margin: 6px 0; cursor: pointer; color: #38424f; font-weight: 500;
@@ -185,7 +193,8 @@ body {
     }
     #viewport { height: 54vh; }
     #legend { display: none; }
-    #viewOptions { min-width: 0; padding: 9px 12px; max-width: 46vw; }
+    #viewOptions { min-width: 0; padding: 9px 12px; max-width: 62vw; max-height: 46vh; overflow-y: auto; }
+    #hint { display: none; }
 }
 </style>
 <script type="importmap">
@@ -217,7 +226,8 @@ body {
         <div id="canvasHost"></div>
 
         <div id="viewOptions">
-            <div class="vo-title">View Options</div>
+            <button class="vo-title" id="voToggle">View Options <span class="chev">▾</span></button>
+            <div id="voBody">
             <div class="group" style="border-top:none; margin-top:0; padding-top:0;">
                 <div class="group-label">Coil Wall</div>
                 <label class="row"><input type="radio" name="coilWall" value="N" checked> North wall — straight serpentine</label>
@@ -233,6 +243,7 @@ body {
                 <input type="range" id="cutX" min="-70" max="200" value="200" step="1">
                 <div class="slider-label"><span>North&ndash;South</span><span id="cutZVal">off</span></div>
                 <input type="range" id="cutZ" min="-70" max="200" value="200" step="1">
+            </div>
             </div>
         </div>
 
@@ -305,14 +316,18 @@ const rampY = z => {
 
 /* ---------------- indent (styrofoam block-out) geometry ----------------- */
 function indentSpec(wallSide) {
+    // The recess is SHORT: it only reaches down to just under the first step,
+    // where the coil's pipes pop out into the under-stair void — it does NOT
+    // run down toward the bottom of the bor tevila.
     if (wallSide === 'N') {
-        // recess in the north wall: 9" wide, 2.5" deep, from 50" up to 106"
-        return { axis: 'Z', min1: 24.5, max1: 33.5, yMin: 50, yMax: 106,
-                 face: D.inR, depth: 2.5, riserA: 27.5, riserB: 30.5 };
+        // north wall: 9" wide, 2.5" deep, from ~86" (just under the first
+        // step at the wall) up to 106" (above the 99" water line)
+        return { axis: 'Z', min1: 38, max1: 47, yMin: 86, yMax: 106,
+                 face: D.inR, depth: 2.5, riserA: 40.5, riserB: 44.5 };
     }
-    // east wall: same recess near the north corner
-    return { axis: 'X', min1: 37.5, max1: 46.5, yMin: 50, yMax: 106,
-             face: D.inR, depth: 2.5, riserA: 40.5, riserB: 43.5 };
+    // east wall: same recess near the north corner (soffit is 85.5"-92" there)
+    return { axis: 'X', min1: 38, max1: 47, yMin: 84, yMax: 106,
+             face: D.inR, depth: 2.5, riserA: 40.5, riserB: 44.5 };
 }
 
 /* =========================================================================
@@ -377,6 +392,7 @@ const std = (color, roughness, extra = {}) => new THREE.MeshStandardMaterial({
 const M = {
     ground: std(0x5c4033, 1),
     gravel: std(0x666655, 1),
+    roomFloor: std(0xdedad2, 0.9),
     cradle: std(0x9e9e9e, 0.6),
     concrete: std(0xcfcfcf, 0.5),
     concreteGhost: std(0xcfcfcf, 0.5, { transparent: true, opacity: 0.22, depthWrite: false }),
@@ -503,6 +519,7 @@ function buildSite() {
 
     // HLM 5000 waterproofing (thin dark coat on cradle interior)
     const t = 0.25;
+    addBox(g, -iw, iw, 0, t, -iw, iw, M.hlm);
     addBox(g, -iw, iw, 0, D.cradleH, iw - t, iw, M.hlm);
     addBox(g, -iw, iw, 0, D.cradleH, -iw, -iw + t, M.hlm);
     addBox(g, -iw, -iw + t, 0, D.cradleH, -iw, iw, M.hlm);
@@ -514,6 +531,15 @@ function buildSite() {
     addBox(g, -wsIn, wsIn, 0, 4, -wsIn - 0.25, -wsIn + 0.25, M.waterstop);
     addBox(g, -wsIn - 0.25, -wsIn + 0.25, 0, 4, -wsIn, wsIn, M.waterstop);
     addBox(g, wsIn - 0.25, wsIn + 0.25, 0, 4, -wsIn, wsIn, M.waterstop);
+
+    // the room: finished floor poured around the mikvah, flush with the rim,
+    // so the pool reads as sunk into the building floor
+    const open = (D.intW + 2 * D.wall) / 2 + D.foam;   // 60.5 — pool opening in the floor
+    const ext2 = 420, fB = D.cradleH, fT = D.intH;      // slab from cradle top up to rim
+    addBox(g, -ext2, ext2, fB, fT, open, ext2, M.roomFloor);
+    addBox(g, -ext2, ext2, fB, fT, -ext2, -open, M.roomFloor);
+    addBox(g, -ext2, -open, fB, fT, -open, open, M.roomFloor);
+    addBox(g, open, ext2, fB, fT, -open, open, M.roomFloor);
     return g;
 }
 
@@ -708,35 +734,46 @@ function buildCoil(wallSide) {
     const R = 1.0;                 // pipe radius
     const rec = D.inR + 1.2;       // centerline of pipes inside the recess
     const face = D.inR - 1.4;      // coil plane just off the wall face
-    const out = D.inR + D.wall + 3;
 
+    // The coil hangs on the wall face inside the void. Only near the top do
+    // its pipes enter the short recess (just under the first step) and climb
+    // past the water line. `back` is a second plane, slightly in front of the
+    // rows, used by the return jumper so pipes never collide.
+    const back = D.inR - 3.6;
     let pts;
     if (wallSide === 'N') {
         // serpentine on the north wall under the stair slab (x left-right, y up)
-        const xE = 44, xW = 15;
+        const xE = 41.5, xW = 15;
         pts = [
-            [s.riserB, D.penY, rec], [s.riserB, 54, rec], [s.riserB, 54, face],
-            [xW, 54, face], [xW, 60, face], [xE, 60, face], [xE, 66, face],
-            [xW, 66, face], [xW, 72, face], [xE, 72, face], [xE, 78, face],
-            [xW, 78, face], [xW, 84, face], [xE, 84, face], [xE, 90, face],
-            [s.riserA, 90, face], [s.riserA, 90, rec], [s.riserA, D.penY, rec]
+            [s.riserA, D.penY, rec], [s.riserA, 88, rec], [s.riserA, 88, face],
+            [xW, 88, face], [xW, 82, face], [xE, 82, face], [xE, 76, face],
+            [xW, 76, face], [xW, 70, face], [xE, 70, face], [xE, 64, face],
+            [xW, 64, face], [xW, 58, face], [xE, 58, face],
+            // return jumper — a plane in front of the rows, back up to the recess
+            [xE, 58, back], [xE, 88, back], [s.riserB, 88, back],
+            [s.riserB, 88, rec], [s.riserB, D.penY, rec]
         ];
         addPipe(g, pts, R, M.copper);
-        addPipe(g, [[s.riserA, D.penY, rec], [s.riserA, D.penY, out]], R, M.copper);
-        addPipe(g, [[s.riserB, D.penY, rec], [s.riserB, D.penY, out]], R, M.copper);
-        addBox(g, s.riserA - 5, s.riserB + 5, D.penY - 4, D.penY + 4, out, out + 7, M.heater);
+        // through the wall, then up through the room floor into the heating unit
+        addPipe(g, [[s.riserA, D.penY, rec], [s.riserA, D.penY, 70], [s.riserA, 114, 70]], R, M.copper);
+        addPipe(g, [[s.riserB, D.penY, rec], [s.riserB, D.penY, 70], [s.riserB, 114, 70]], R, M.copper);
+        addBox(g, s.riserA - 5, s.riserB + 5, D.intH, D.intH + 14, 65, 78, M.heater);
     } else {
         // east wall — the coil steps down with the staircase soffit
         pts = [
-            [rec, D.penY, s.riserA], [rec, 54, s.riserA], [face, 54, s.riserA],
-            [face, 54, 10], [face, 60, 10], [face, 60, 44], [face, 66, 44],
-            [face, 66, 26], [face, 72, 26], [face, 72, s.riserB],
-            [face, 78, s.riserB], [rec, 78, s.riserB], [rec, D.penY, s.riserB]
+            [rec, D.penY, s.riserA], [rec, 85, s.riserA], [face, 85, s.riserA],
+            [face, 78, s.riserA], [face, 78, 44.5], [face, 72, 44.5],
+            [face, 72, 31], [face, 66, 31], [face, 66, 44.5],
+            [face, 60, 44.5], [face, 60, 23], [face, 54, 23], [face, 54, 44.5],
+            // return jumper up near the north corner, back into the recess
+            [back, 54, 44.5], [back, 84, 44.5],
+            [rec, 84, s.riserB], [rec, D.penY, s.riserB]
         ];
         addPipe(g, pts, R, M.copper);
-        addPipe(g, [[rec, D.penY, s.riserA], [out, D.penY, s.riserA]], R, M.copper);
-        addPipe(g, [[rec, D.penY, s.riserB], [out, D.penY, s.riserB]], R, M.copper);
-        addBox(g, out, out + 7, D.penY - 4, D.penY + 4, s.riserA - 5, s.riserB + 5, M.heater);
+        // through the wall, then up through the room floor into the heating unit
+        addPipe(g, [[rec, D.penY, s.riserA], [70, D.penY, s.riserA], [70, 114, s.riserA]], R, M.copper);
+        addPipe(g, [[rec, D.penY, s.riserB], [70, D.penY, s.riserB], [70, 114, s.riserB]], R, M.copper);
+        addBox(g, 65, 78, D.intH, D.intH + 14, s.riserA - 5, s.riserB + 5, M.heater);
     }
     return g;
 }
@@ -827,16 +864,19 @@ const STEPS = [
 {
     title: 'The Room Is Ready — Cradle Complete',
     html: () => `
-        <p>We start in a room where the <strong>cradle</strong> is finished and ready:
-        a reinforced concrete tub — floor and walls — sitting on <span class="dim">6&Prime;</span> of gravel,
-        with a waterstop ribbon at the wall joint and <strong>HLM&nbsp;5000</strong> waterproofing
+        <p>We start in a room where the <strong>cradle</strong> is poured and ready, sunk
+        into the building with the finished floor around it: a reinforced concrete tub —
+        floor and walls — sitting on <span class="dim">6&Prime;</span> of gravel, with a
+        waterstop ribbon at the wall joint and <strong>HLM&nbsp;5000</strong> waterproofing
         coating the entire interior.</p>
-        <p>A thin (<span class="dim">&frac12;&Prime;</span>) foam liner separates the cradle from the mikvah
-        pour, so the mikvah itself stands as its own independent vessel inside the cradle.</p>
+        <p>Before forming, a thin (<span class="dim">&frac12;&Prime;</span>) foam liner is placed
+        against the cradle walls — you&rsquo;ll see it in the next step — so the mikvah stands
+        as its own independent vessel inside the cradle.</p>
         <div class="callout">Everything from here on gets poured <em>inside</em> this cradle.</div>`,
-    flags: { site: 1, foam: 1 },
-    cam: { pos: [300, 320, 300], tgt: [0, 30, 0] },
-    labels: () => [['Waterproofed cradle', [0, 115, -80]], ['Foam liner', [-63, 108, 0]]]
+    flags: { site: 1 },
+    cam: { pos: [140, 210, 140], tgt: [0, 40, 0] },
+    labels: () => [['Waterproofed cradle (HLM 5000)', [0, 118, -30]],
+                   ['Room floor', [-160, 118, -110]]]
 },
 {
     title: 'Forming — Set Up for a One-Shot Pour',
@@ -845,15 +885,18 @@ const STEPS = [
         all four walls <em>and</em> the floor, monolithically — no cold joints anywhere below
         the water line.</p>
         <ul>
+            <li>The <span class="dim">&frac12;&Prime;</span> foam liner (pink) now lines the cradle walls.</li>
             <li>Interior wall forms define the <span class="dim">96&Prime; &times; 96&Prime;</span> finished interior.</li>
             <li>A suspended form box shapes the <strong>bor pit</strong> in the deep half of the floor.</li>
         </ul>
         <div class="callout">The critical detail: a <strong>styrofoam block-out</strong>
-        (pink) is fastened to the ${wallName()}-wall form, under where the steps will later be.
-        It is about <span class="dim">9&Prime;</span> wide, <span class="dim">2&frac12;&Prime;</span> thick,
-        and runs vertically from <span class="dim">50&Prime;</span> up to <span class="dim">106&Prime;</span> —
-        from below the future water line to above it. When the concrete cures and the foam is
-        pulled, it leaves a recessed channel (indent) in the wall.</div>`,
+        (pink) is fastened high on the ${wallName()}-wall form, right where the top of the
+        staircase will later meet the wall. It is about <span class="dim">9&Prime;</span> wide,
+        <span class="dim">2&frac12;&Prime;</span> thick, and runs only from just under the
+        future first step (about <span class="dim">86&Prime;</span>) up to
+        <span class="dim">106&Prime;</span> — from below the water line to above it.
+        When the concrete cures and the foam is pulled, it leaves a short recessed
+        channel (indent) in the wall.</div>`,
     flags: { site: 1, foam: 1, forms: 1, styro: 1 },
     cam: { pos: [170, 250, 250], tgt: [10, 65, 15] },
     labels: () => {
@@ -897,16 +940,19 @@ const STEPS = [
         <p>The forms come off and the styrofoam is dug out. What remains in the
         ${wallName()} wall is a clean <strong>recessed channel — the indent</strong>:
         <span class="dim">9&Prime;</span> wide, <span class="dim">2&frac12;&Prime;</span> deep,
-        running from <span class="dim">50&Prime;</span> up to <span class="dim">106&Prime;</span>.</p>
+        running only from just under the first step (about <span class="dim">86&Prime;</span>)
+        up to <span class="dim">106&Prime;</span>. It deliberately does <em>not</em> continue
+        down toward the bottom of the bor tevila — the coil itself will simply hang on the
+        wall inside the void, and only its pipes need the recess.</p>
         <p>Nothing was drilled and nothing penetrates the wall below the water line —
         the channel is simply <em>cast into</em> the monolithic wall.</p>
-        <div class="callout">This indent is the whole trick. It gives the heating pipes a
-        recessed path to climb from under the steps up past the water line, without
-        sticking out into the pool and without any low penetration.</div>`,
+        <div class="callout">This indent is the whole trick. The coil&rsquo;s pipes come out
+        of it just under the first step, and inside it they climb past the water line,
+        without sticking out into the pool and without any low penetration.</div>`,
     flags: { site: 1, foam: 1, shell: 1, indent: 1 },
     cam: () => state.coilWall === 'N'
-        ? { pos: [-40, 80, -44], tgt: [29, 78, 48] }
-        : { pos: [-44, 80, -40], tgt: [48, 78, 42] },
+        ? { pos: [-32, 86, -44], tgt: [42, 94, 48] }
+        : { pos: [-44, 86, -32], tgt: [48, 94, 42] },
     labels: () => {
         const s = indentSpec(state.coilWall);
         return state.coilWall === 'N'
@@ -948,8 +994,8 @@ const STEPS = [
         </ul>
         <p>The flight is a sloped slab — so <strong>underneath the steps there is an open
         void</strong>. That void is exactly where the radiator will hide. Notice the indent
-        runs right through it: it starts under the stair soffit and continues up behind the
-        flight, past the water line.</p>
+        sits right at the top of it: it begins just under the first step and continues up
+        behind the flight, past the water line.</p>
         <div class="callout">Check <strong>&ldquo;Hide stairs&rdquo;</strong> (top right)
         to look into the void under the flight.</div>`,
     flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1 },
@@ -967,10 +1013,11 @@ const STEPS = [
         steps only reaches about <span class="dim">93&Prime;</span> at the wall — everything
         under there is <em>below</em> the water line, and the wall may not be penetrated
         below the water line.</p>
-        <p><strong>The solution:</strong> the radiator mounts on the ${wallName()} wall inside
-        the under-stair void. Its supply and return pipes duck into the <strong>indent</strong>,
-        climb the recessed channel — passing behind the stair flight — and only punch through
-        the wall at <span class="dim">${D.penY - D.floorH}&Prime;</span> above the floor:
+        <p><strong>The solution:</strong> the radiator hangs on the ${wallName()} wall inside
+        the under-stair void. Its supply and return pipes rise to just under the first step,
+        where they duck into the short <strong>indent</strong>, climb the recessed channel —
+        passing behind the stair flight — and only punch through the wall at
+        <span class="dim">${D.penY - D.floorH}&Prime;</span> above the floor:
         safely <strong>above the 51&Prime; water line</strong>. From there they run to the
         heating equipment.</p>
         ${state.coilWall === 'N' ? `
@@ -1129,6 +1176,10 @@ for (const radio of document.querySelectorAll('input[name=coilWall]')) {
         flyTo(STEPS[state.step].cam);
     };
 }
+const voPanel = document.getElementById('viewOptions');
+document.getElementById('voToggle').onclick = () => voPanel.classList.toggle('collapsed');
+if (window.innerWidth <= 900) voPanel.classList.add('collapsed'); // start collapsed on mobile
+
 document.getElementById('chkHideStairs').onchange = e => { state.hideStairs = e.target.checked; rebuild(); };
 document.getElementById('chkLabels').onchange = e => { state.showLabels = e.target.checked; rebuild(); };
 
