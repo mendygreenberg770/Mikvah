@@ -246,7 +246,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 2:50 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 3:00 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -266,10 +266,14 @@ body {
             </div>
             <div class="group">
                 <div class="group-label">Section Cuts</div>
-                <div class="slider-label"><span>West&ndash;East</span><span id="cutXVal">off</span></div>
-                <input type="range" id="cutX" min="-70" max="200" value="200" step="1">
-                <div class="slider-label"><span>North&ndash;South</span><span id="cutZVal">off</span></div>
-                <input type="range" id="cutZ" min="-70" max="200" value="200" step="1">
+                <div class="slider-label"><span>West &rarr; East</span><span id="cutWVal">off</span></div>
+                <input type="range" id="cutW" min="0" max="150" value="0" step="1">
+                <div class="slider-label"><span>East &rarr; West</span><span id="cutEVal">off</span></div>
+                <input type="range" id="cutE" min="0" max="150" value="0" step="1">
+                <div class="slider-label"><span>North &rarr; South</span><span id="cutNVal">off</span></div>
+                <input type="range" id="cutN" min="0" max="150" value="0" step="1">
+                <div class="slider-label"><span>South &rarr; North</span><span id="cutSVal">off</span></div>
+                <input type="range" id="cutS" min="0" max="150" value="0" step="1">
             </div>
             </div>
         </div>
@@ -391,10 +395,12 @@ function resize() {
 }
 window.addEventListener('resize', resize);
 
-/* ---------------- clipping (section cuts) ---------------- */
-const clipX = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 2000); // keeps x <= const
-const clipZ = new THREE.Plane(new THREE.Vector3(0, 0, -1), 2000); // keeps z <= const
-const clipPlanes = [clipX, clipZ];
+/* ---------------- clipping (section cuts, one per side) ---------------- */
+const clipW = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 2000); // keeps x <= c  (cut from west)
+const clipE = new THREE.Plane(new THREE.Vector3(1, 0, 0), 2000);  // keeps x >= -c (cut from east)
+const clipN = new THREE.Plane(new THREE.Vector3(0, 0, -1), 2000); // keeps z <= c  (cut from north)
+const clipS = new THREE.Plane(new THREE.Vector3(0, 0, 1), 2000);  // keeps z >= -c (cut from south)
+const clipPlanes = [clipW, clipE, clipN, clipS];
 
 /* ---------------- materials ---------------- */
 function mosaicTexture() {
@@ -1285,16 +1291,23 @@ if (window.innerWidth <= 900) voPanel.classList.add('collapsed'); // start colla
 document.getElementById('chkHideStairs').onchange = e => { state.hideStairs = e.target.checked; rebuild(); };
 document.getElementById('chkLabels').onchange = e => { state.showLabels = e.target.checked; rebuild(); };
 
-const cutX = document.getElementById('cutX'), cutXVal = document.getElementById('cutXVal');
-const cutZ = document.getElementById('cutZ'), cutZVal = document.getElementById('cutZVal');
-cutX.oninput = () => {
-    clipX.constant = cutX.value >= 200 ? 2000 : +cutX.value;
-    cutXVal.textContent = cutX.value >= 200 ? 'off' : cutX.value + '″';
-};
-cutZ.oninput = () => {
-    clipZ.constant = cutZ.value >= 200 ? 2000 : +cutZ.value;
-    cutZVal.textContent = cutZ.value >= 200 ? 'off' : cutZ.value + '″';
-};
+// each slider is a cut depth, in inches, measured inward from its own side
+// (room walls sit at x = ±90, z = -90 and z = 126)
+const CUTS = [
+    { id: 'cutW', plane: clipW, edge: 90 },
+    { id: 'cutE', plane: clipE, edge: 90 },
+    { id: 'cutN', plane: clipN, edge: 126 },
+    { id: 'cutS', plane: clipS, edge: 90 }
+];
+for (const c of CUTS) {
+    const slider = document.getElementById(c.id);
+    const label = document.getElementById(c.id + 'Val');
+    slider.oninput = () => {
+        const d = +slider.value;
+        c.plane.constant = d === 0 ? 2000 : c.edge - d;
+        label.textContent = d === 0 ? 'off' : d + '″';
+    };
+}
 
 /* ---------------- boot ---------------- */
 resize();
