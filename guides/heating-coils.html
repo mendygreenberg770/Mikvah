@@ -517,9 +517,8 @@ function buildSite() {
     addBox(g, -ow, -iw, 0, D.cradleH, -iw, iw, M.cradle);
     addBox(g, iw, ow, 0, D.cradleH, -iw, iw, M.cradle);
 
-    // HLM 5000 waterproofing (thin dark coat on cradle interior)
+    // HLM 5000 waterproofing (thin dark coat on the cradle walls — NOT the floor)
     const t = 0.25;
-    addBox(g, -iw, iw, 0, t, -iw, iw, M.hlm);
     addBox(g, -iw, iw, 0, D.cradleH, iw - t, iw, M.hlm);
     addBox(g, -iw, iw, 0, D.cradleH, -iw, -iw + t, M.hlm);
     addBox(g, -iw, -iw + t, 0, D.cradleH, -iw, iw, M.hlm);
@@ -868,7 +867,7 @@ const STEPS = [
         into the building with the finished floor around it: a reinforced concrete tub —
         floor and walls — sitting on <span class="dim">6&Prime;</span> of gravel, with a
         waterstop ribbon at the wall joint and <strong>HLM&nbsp;5000</strong> waterproofing
-        coating the entire interior.</p>
+        coating the walls (the floor is left bare).</p>
         <p>Before forming, a thin (<span class="dim">&frac12;&Prime;</span>) foam liner is placed
         against the cradle walls — you&rsquo;ll see it in the next step — so the mikvah stands
         as its own independent vessel inside the cradle.</p>
