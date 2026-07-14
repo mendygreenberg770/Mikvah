@@ -246,7 +246,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 3:30 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 3:20 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -617,15 +617,17 @@ function buildForms(wallSide) {
     const r = D.inR, t = 1.5, top = D.intH + 2;
     // Interior wall forms. There are NO boards over the floor surfaces — the
     // crew levels (screeds) the wet concrete to the floor lines during the
-    // pour; a top board would just be pushed up by the concrete. Each wall
-    // is ONE continuous panel, and every panel ends at the SAME level all
-    // the way around: the 42" ledge line. On the thick half the crew simply
-    // screeds the floor at 48" to a line marked on the form.
-    const pB = D.ledgeLevel;                  // one level bottom, all around
-    addBox(g, -r, r, pB, top, r - t, r, M.plywood);            // north wall
-    addBox(g, -r, r, pB, top, -r, -r + t, M.plywood);          // south wall
-    addBox(g, -r, -r + t, pB, top, -r + t, r - t, M.plywood);  // east wall
-    addBox(g, r - t, r, pB, top, -r + t, r - t, M.plywood);    // west wall (bor side)
+    // pour; a top board would just be pushed up by the concrete. So each
+    // panel hangs down exactly to the screed line it borders: 48" on the
+    // thick half, and deeper — 42", the ledge line — on the bor half.
+    const split = D.ledgeMinX;                // -4": east of this = thick floor
+    const wB = D.floorH, eB = D.ledgeLevel;   // panel bottoms: the screed line they border
+    for (const [z0, z1] of [[r - t, r], [-r, -r + t]]) {   // north + south walls
+        addBox(g, -r, split, wB, top, z0, z1, M.plywood);  //   thick-floor side: to the 48" line
+        addBox(g, split, r, eB, top, z0, z1, M.plywood);   //   bor side: to the 42" ledge line
+    }
+    addBox(g, -r, -r + t, wB, top, -r + t, r - t, M.plywood);  // east wall
+    addBox(g, r - t, r, eB, top, -r + t, r - t, M.plywood);    // west wall (bor side)
     // walers (horizontal stiffeners) for a built look
     for (const y of [58, 76, 94]) {
         addBox(g, -r + t, r - t, y, y + 3, r - t - 3, r - t, M.lumber);
@@ -983,11 +985,6 @@ const STEPS = [
             would just push them up. The crew levels (screeds) the floor to its lines during
             the pour: <span class="dim">48&Prime;</span> on the thick half,
             <span class="dim">42&Prime;</span> on the ledge.</li>
-            <li>Each wall form is <strong>one continuous panel</strong>, and all of them end at
-            the <strong>same level</strong> all the way around — the
-            <span class="dim">42&Prime;</span> ledge line. On the thick half the
-            <span class="dim">48&Prime;</span> floor is simply screeded to a mark on the
-            form.</li>
             <li>On the bor half the formwork is <strong>one continuous piece</strong>: the wall
             form comes down to the <span class="dim">42&Prime;</span> ledge line, <strong>indents
             in <span class="dim">6&Prime;</span></strong> — that little horizontal step is what
