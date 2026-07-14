@@ -246,7 +246,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 3:45 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 4:00 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -617,17 +617,23 @@ function buildForms(wallSide) {
     const r = D.inR, t = 1.5, top = D.intH + 2;
     // Interior wall forms. There are NO boards over the floor surfaces — the
     // crew levels (screeds) the wet concrete to the floor lines during the
-    // pour; a top board would just be pushed up by the concrete. So each
-    // panel hangs down exactly to the screed line it borders: 48" on the
-    // thick half, and deeper — 42", the ledge line — on the bor half.
+    // pour; a top board would just be pushed up by the concrete. Every wall
+    // panel ends at the same 48" floor line; the 6" difference on the bor
+    // half is handled by the lip ring below.
     const split = D.ledgeMinX;                // -4": east of this = thick floor
-    const wB = D.floorH, eB = D.ledgeLevel;   // panel bottoms: the screed line they border
-    for (const [z0, z1] of [[r - t, r], [-r, -r + t]]) {   // north + south walls
-        addBox(g, -r, split, wB, top, z0, z1, M.plywood);  //   thick-floor side: to the 48" line
-        addBox(g, split, r, eB, top, z0, z1, M.plywood);   //   bor side: to the 42" ledge line
-    }
-    addBox(g, -r, -r + t, wB, top, -r + t, r - t, M.plywood);  // east wall
-    addBox(g, r - t, r, eB, top, -r + t, r - t, M.plywood);    // west wall (bor side)
+    const pB = D.floorH;                      // all panels end at the 48" line
+    addBox(g, -r, r, pB, top, r - t, r, M.plywood);            // north wall
+    addBox(g, -r, r, pB, top, -r, -r + t, M.plywood);          // south wall
+    addBox(g, -r, -r + t, pB, top, -r + t, r - t, M.plywood);  // east wall
+    addBox(g, r - t, r, pB, top, -r + t, r - t, M.plywood);    // west wall
+    // the 6"-tall LIP rings the bor half — below the panels on three sides
+    // and across the open side — dropping the pour inside it from the 48"
+    // floor line to the 42" ledge line
+    const lB = D.ledgeLevel, lT = D.floorH;
+    addBox(g, split, r - t, lB, lT, r - t - 1.5, r - t, M.lumber);              // north side
+    addBox(g, split, r - t, lB, lT, -r + t, -r + t + 1.5, M.lumber);            // south side
+    addBox(g, r - t - 1.5, r - t, lB, lT, -r + t + 1.5, r - t - 1.5, M.lumber); // west side
+    addBox(g, split, split + 1.5, lB, lT, -r + t, r - t, M.lumber);             // across the open side
     // walers (horizontal stiffeners) for a built look
     for (const y of [58, 76, 94]) {
         addBox(g, -r + t, r - t, y, y + 3, r - t - 3, r - t, M.lumber);
@@ -646,10 +652,6 @@ function buildForms(wallSide) {
     addBox(g, D.borMaxX - 0.1, r - t, ft2, ft2 + 1.5, D.borMinZ, D.borMaxZ, M.plywood);      // west gap
     addBox(g, D.borMinX, r - t, ft2, ft2 + 1.5, D.borMaxZ - 0.1, r - t, M.plywood);          // north gap
     addBox(g, D.borMinX, r - t, ft2, ft2 + 1.5, -r + t, D.borMinZ + 0.1, M.plywood);         // south gap
-    // the 2x4 LIP along the line where the thick floor ends: it closes the
-    // "box" around the bor half, so the pour inside it stops 6" lower (at
-    // the 42" ledge) and the floor above the bor gets poured on top later
-    addBox(g, D.ledgeMinX, D.ledgeMinX + 1.5, ft2, D.floorH + 2, -r + t, r - t, M.lumber);
     addBox(g, D.borMinX, D.borMaxX, fb, ft2, D.borMaxZ - 1.5, D.borMaxZ, M.plywood);         // north side
     addBox(g, D.borMinX, D.borMaxX, fb, ft2, D.borMinZ, D.borMinZ + 1.5, M.plywood);         // south side
     addBox(g, D.borMinX, D.borMinX + 1.5, fb, ft2, D.borMinZ + 1.5, D.borMaxZ - 1.5, M.plywood); // west side
@@ -989,15 +991,16 @@ const STEPS = [
             would just push them up. The crew levels (screeds) the floor to its lines during
             the pour: <span class="dim">48&Prime;</span> on the thick half,
             <span class="dim">42&Prime;</span> on the ledge.</li>
-            <li>On the bor half the formwork is <strong>one continuous piece</strong>: the wall
-            form comes down to the <span class="dim">42&Prime;</span> ledge line, <strong>indents
-            in <span class="dim">6&Prime;</span></strong> — that little horizontal step is what
+            <li>Every wall panel ends at the same <span class="dim">48&Prime;</span> floor
+            line. Around the bor half, a <strong><span class="dim">6&Prime;</span>-tall
+            lip</strong> continues below the panels — and runs across the open side too,
+            closing the box — so the pour inside it stops <span class="dim">6&Prime;</span>
+            lower, at the <span class="dim">42&Prime;</span> ledge. The floor above the bor
+            gets poured on top of that ledge later.</li>
+            <li>At the bottom of the lip the form <strong>indents in
+            <span class="dim">6&Prime;</span></strong> — that little horizontal step is what
             shapes the ledge — and then keeps going <strong>down as the bor form</strong>.
-            Because it&rsquo;s all connected, nothing needs to run to the bottom.</li>
-            <li>Where the thick floor ends, a <strong>2&times;4 lip</strong> on edge completes
-            the &ldquo;box&rdquo; around the bor half — the pour inside it stops
-            <span class="dim">6&Prime;</span> lower, at the ledge, so the floor above the bor
-            can be poured on top of it later.</li>
+            One connected assembly; nothing needs to run to the bottom.</li>
             <li>Below the indent, the bor form is an <strong>open sleeve</strong> — no top and
             <em>no bottom</em>. Its sides end a foot off the ground: the bor&rsquo;s base is
             poured <em>under</em> it and leveled at <span class="dim">12&Prime;</span> inside the
@@ -1020,7 +1023,7 @@ const STEPS = [
         const common = [
             ['Bor form — open sleeve, ends 12″ off the ground', [22, 26, 0], true],
             ['One piece: wall form indents 6″, continues down', [45, 50, 0], true],
-            ['2×4 lip — pour steps down 6″ here', [-4, 58, -20]],
+            ['6″ lip rings the bor half — pour steps down inside it', [-4, 58, -20]],
             ['Two 2×4s hold it from above', [22, 118, -56]],
             ['Interior wall forms', [-52, 118, -46]],
             ['Open — screeded to 48″ during the pour', [-26, 54, 0]]
