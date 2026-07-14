@@ -393,11 +393,14 @@ const M = {
     ground: std(0x5c4033, 1),
     gravel: std(0x666655, 1),
     roomFloor: std(0xdedad2, 0.9),
+    // room walls face inward only, so the camera always sees through the near
+    // wall into the room (dollhouse effect)
+    roomWall: new THREE.MeshStandardMaterial({ color: 0xe9e5dc, roughness: 1, clippingPlanes: clipPlanes }),
     cradle: std(0x9e9e9e, 0.6),
     concrete: std(0xcfcfcf, 0.5),
     concreteGhost: std(0xcfcfcf, 0.5, { transparent: true, opacity: 0.22, depthWrite: false }),
     recessBack: std(0xb5b5b5, 0.7),
-    hlm: std(0x222222, 0.2),
+    hlm: std(0x4a5157, 0.4),
     foam: std(0xffcccc, 0.9),
     waterstop: std(0x0000ff, 0.4),
     plywood: std(0xc89b5f, 0.85),
@@ -534,11 +537,25 @@ function buildSite() {
     // the room: finished floor poured around the mikvah, flush with the rim,
     // so the pool reads as sunk into the building floor
     const open = (D.intW + 2 * D.wall) / 2 + D.foam;   // 60.5 — pool opening in the floor
-    const ext2 = 420, fB = D.cradleH, fT = D.intH;      // slab from cradle top up to rim
+    const ext2 = 240, fB = D.cradleH, fT = D.intH;      // slab from cradle top up to rim
     addBox(g, -ext2, ext2, fB, fT, open, ext2, M.roomFloor);
     addBox(g, -ext2, ext2, fB, fT, -ext2, -open, M.roomFloor);
     addBox(g, -ext2, -open, fB, fT, -open, open, M.roomFloor);
     addBox(g, open, ext2, fB, fT, -open, open, M.roomFloor);
+
+    // room walls — inward-facing planes (10' ceiling), so whichever side the
+    // camera is on, the near wall is invisible and the far walls close the room
+    const wallTop = fT + 120;
+    const mkRoomWall = (w, pos, rotY) => {
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(w, wallTop - fT), M.roomWall);
+        m.rotation.y = rotY;
+        m.position.set(pos[0], (fT + wallTop) / 2, pos[1]);
+        g.add(m);
+    };
+    mkRoomWall(2 * ext2, [0, ext2], Math.PI);       // north
+    mkRoomWall(2 * ext2, [0, -ext2], 0);            // south
+    mkRoomWall(2 * ext2, [-ext2, 0], Math.PI / 2);  // west
+    mkRoomWall(2 * ext2, [ext2, 0], -Math.PI / 2);  // east
     return g;
 }
 
@@ -556,11 +573,19 @@ function buildFoam() {
 function buildForms(wallSide) {
     const g = new THREE.Group();
     const r = D.inR, t = 1.5, top = D.intH + 2;
-    // interior wall forms (from floor level up — floor + walls pour as one)
-    addBox(g, -r, r, D.floorH - 2, top, r - t, r, M.plywood);          // north
-    addBox(g, -r, r, D.floorH - 2, top, -r, -r + t, M.plywood);        // south
-    addBox(g, -r, -r + t, D.floorH - 2, top, -r + t, r - t, M.plywood);// west
-    addBox(g, r - t, r, D.floorH - 2, top, -r + t, r - t, M.plywood);  // east
+    // Interior wall forms. There are NO boards over the floor surfaces — the
+    // crew levels (screeds) the wet concrete to the floor lines during the
+    // pour; a top board would just be pushed up by the concrete. So each
+    // panel hangs down exactly to the screed line it borders: 48" on the
+    // thick half, and deeper — 42", the ledge line — on the bor half.
+    const split = D.ledgeMinX;                // -4": west of this = thick floor
+    const wB = D.floorH, eB = D.ledgeLevel;   // panel bottom elevations
+    for (const [z0, z1] of [[r - t, r], [-r, -r + t]]) {   // north + south walls
+        addBox(g, -r, split, wB, top, z0, z1, M.plywood);  //   thick-floor side
+        addBox(g, split, r, eB, top, z0, z1, M.plywood);   //   bor side — goes further down
+    }
+    addBox(g, -r, -r + t, wB, top, -r + t, r - t, M.plywood);  // west wall
+    addBox(g, r - t, r, eB, top, -r + t, r - t, M.plywood);    // east wall — goes further down
     // walers (horizontal stiffeners) for a built look
     for (const y of [58, 76, 94]) {
         addBox(g, -r + t, r - t, y, y + 3, r - t - 3, r - t, M.lumber);
@@ -568,9 +593,16 @@ function buildForms(wallSide) {
         addBox(g, -r + t, -r + t + 3, y, y + 3, -r + t + 3, r - t - 3, M.lumber);
         addBox(g, r - t - 3, r - t, y, y + 3, -r + t + 3, r - t - 3, M.lumber);
     }
-    // bor void form (a suspended plywood box shapes the pit + ledge)
+    // bor void form — a plywood box keeps the pit hollow during the pour
     addBox(g, D.borMinX, D.borMaxX, D.borBottom, D.ledgeLevel, D.borMinZ, D.borMaxZ, M.plywood);
-    addBox(g, D.ledgeMinX, r, D.ledgeLevel, D.floorH - 2, -r, r, M.plywood);
+    // the box hangs from lumber bridging over the pool — held from above,
+    // because the wet concrete would otherwise float it up
+    for (const bx of [8, 22, 36]) {
+        addBox(g, bx - 2, bx + 2, D.intH, D.intH + 6, -72, 72, M.lumber);           // bridge beams
+        for (const hz of [-28, 28]) {
+            addBox(g, bx - 2, bx + 2, D.ledgeLevel, D.intH, hz - 2, hz + 2, M.lumber); // hangers
+        }
+    }
     return g;
 }
 
@@ -873,7 +905,7 @@ const STEPS = [
         as its own independent vessel inside the cradle.</p>
         <div class="callout">Everything from here on gets poured <em>inside</em> this cradle.</div>`,
     flags: { site: 1 },
-    cam: { pos: [140, 210, 140], tgt: [0, 40, 0] },
+    cam: { pos: [175, 205, 175], tgt: [0, 45, 0] },
     labels: () => [['Waterproofed cradle (HLM 5000)', [0, 118, -30]],
                    ['Room floor', [-160, 118, -110]]]
 },
@@ -886,7 +918,15 @@ const STEPS = [
         <ul>
             <li>The <span class="dim">&frac12;&Prime;</span> foam liner (pink) now lines the cradle walls.</li>
             <li>Interior wall forms define the <span class="dim">96&Prime; &times; 96&Prime;</span> finished interior.</li>
-            <li>A suspended form box shapes the <strong>bor pit</strong> in the deep half of the floor.</li>
+            <li>There are <strong>no boards over the floor surfaces</strong> — the wet concrete
+            would just push them up. The crew levels (screeds) the floor to its lines during
+            the pour. Note the wall panels hang exactly to those lines:
+            <span class="dim">48&Prime;</span> on the thick half, and clearly
+            <strong>further down</strong> — to the <span class="dim">42&Prime;</span> ledge
+            line — on the bor half, where the floor goes all the way down.</li>
+            <li>A plywood <strong>form box</strong> keeps the bor pit hollow. It hangs from
+            lumber bridging over the pool — held from <em>above</em>, because the concrete
+            would float it upward.</li>
         </ul>
         <div class="callout">The critical detail: a <strong>styrofoam block-out</strong>
         (pink) is fastened high on the ${wallName()}-wall form, right where the top of the
@@ -897,14 +937,18 @@ const STEPS = [
         When the concrete cures and the foam is pulled, it leaves a short recessed
         channel (indent) in the wall.</div>`,
     flags: { site: 1, foam: 1, forms: 1, styro: 1 },
-    cam: { pos: [170, 250, 250], tgt: [10, 65, 15] },
+    cam: { pos: [-150, 215, 170], tgt: [10, 55, 0] },
     labels: () => {
         const s = indentSpec(state.coilWall);
+        const common = [
+            ['Bor void form — hung from above', [22, 30, 0]],
+            ['Bridge lumber holds it down', [22, 124, -50], true],
+            ['Interior wall forms', [-52, 118, -46]],
+            ['Open — screeded to 48″ during the pour', [-26, 54, 0]]
+        ];
         return state.coilWall === 'N'
-            ? [['Styrofoam block-out', [(s.min1 + s.max1) / 2, s.yMax + 8, D.inR + 2], true],
-               ['Bor void form', [22, 50, 0]], ['Interior wall forms', [-50, 118, -46]]]
-            : [['Styrofoam block-out', [D.inR + 2, s.yMax + 8, (s.min1 + s.max1) / 2], true],
-               ['Bor void form', [22, 50, 0]], ['Interior wall forms', [-50, 118, -46]]];
+            ? [['Styrofoam block-out', [(s.min1 + s.max1) / 2, s.yMax + 8, D.inR + 2], true], ...common]
+            : [['Styrofoam block-out', [D.inR + 2, s.yMax + 8, (s.min1 + s.max1) / 2], true], ...common];
     }
 },
 {
