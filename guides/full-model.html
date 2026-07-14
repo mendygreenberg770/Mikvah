@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mikvah Construction: Tiled Finish & Water</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+body { margin: 0; overflow: hidden; background-color: #f4f4f5; font-family: 'Inter', sans-serif; color: #333; }
+    
+    /* HUD / UI */
+    #info {
+        position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+        text-align: center; pointer-events: none;
+        background: rgba(255, 255, 255, 0.85); 
+        backdrop-filter: blur(8px);
+        padding: 12px 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        border: 1px solid rgba(255,255,255,0.4);
+        z-index: 10;
+    }
+    .title { font-weight: 700; font-size: 1.25em; color: #1a1a1a; letter-spacing: -0.01em; }
+    .subtitle { font-size: 0.9em; color: #666; margin-top: 4px; font-weight: 500; }
+    .instructions { font-size: 0.75em; color: #d32f2f; margin-top: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    #legend {
+        position: absolute; bottom: 25px; left: 25px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        padding: 16px; border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.05);
+        font-size: 0.85em; color: #444;
+        pointer-events: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 16px;
+    }
+    #legend strong { grid-column: 1 / -1; margin-bottom: 4px; color: #111; }
+    .legend-item { display: flex; align-items: center; font-weight: 500; }
+    .swatch { width: 14px; height: 14px; margin-right: 8px; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    
+    #loading {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: white; padding: 24px 40px; border-radius: 12px; font-weight: 600;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        font-size: 1.1em; color: #333;
+    }
+
+    /* --- MODERN GUI STYLING --- */
+    .lil-gui { 
+        --background-color: rgba(255, 255, 255, 0.95);
+        --text-color: #333;
+        --title-background-color: #2c3e50;
+        --title-text-color: #eee;
+        --widget-color: #eaeaea;
+        --hover-color: #f5f5f5;
+        --focus-color: #fff;
+        --number-color: #2c3e50;
+        --string-color: #2980b9;
+        
+        font-family: 'Inter', sans-serif;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        max-height: 85vh; 
+        overflow-y: auto;
+        margin-top: 20px;
+        margin-right: 20px;
+    }
+    
+    .lil-gui .title {
+        background-color: #333 !important;
+        color: #fff !important;
+        font-weight: 600 !important;
+        padding: 16px 14px !important;
+        font-size: 14px !important;
+        line-height: 1.2 !important;
+        text-align: left !important;
+        border-radius: 6px 6px 0 0;
+        letter-spacing: 0.02em;
+        display: flex;
+        align-items: center;
+    }
+
+    .lil-gui .button {
+        text-align: center !important;
+        font-weight: 700;
+        color: #444;
+        background: #eef;
+        border-radius: 4px;
+        margin: 6px 0;
+        padding: 4px 0;
+        transition: background 0.2s;
+    }
+    .lil-gui .button:hover { background: #dde; }
+    
+    .lil-gui.autoPlace { top: 0 !important; }
+</style>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "../vendor/three/three.module.js",
+            "three/addons/": "../vendor/three/addons/"
+        }
+    }
+</script>
+</head>
+<body>
+<div id="loading">Loading Engine...</div>
+<div id="info">
+    <div class="title">Mikvah Construction</div>
+    <div class="subtitle">Tiled Interior • Bor Hatachton • Water Levels</div>
+    <div class="instructions">Driven by Mikvah Interior Dimensions</div>
+</div>
+
+<div id="legend">
+    <strong>Material Legend</strong>
+    <div class="legend-item"><div class="swatch" style="background:linear-gradient(45deg, #4da6ff, #0059b3)"></div>Mosaic Tile</div>
+    <div class="legend-item"><div class="swatch" style="background:#5c4033"></div>Natural Ground</div>
+    <div class="legend-item"><div class="swatch" style="background:#666655"></div>Gravel Bedding</div>
+    <div class="legend-item"><div class="swatch" style="background:#9e9e9e"></div>Cradle Concrete</div>
+    <div class="legend-item"><div class="swatch" style="background:#cfcfcf"></div>Mikvah Concrete</div>
+    <div class="legend-item"><div class="swatch" style="background:#0000ff"></div>Waterstop</div>
+    <div class="legend-item"><div class="swatch" style="background:#222"></div>HLM 5000</div>
+    <div class="legend-item"><div class="swatch" style="background:#ffcccc"></div>Foam</div>
+    <div class="legend-item"><div class="swatch" style="background:#505050"></div>Bor Cover (Granite)</div>
+    <div class="legend-item"><div class="swatch" style="background:rgba(0, 150, 255, 0.6)"></div>Water</div>
+</div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+    import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+    import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+
+    // --- 1. PARSING & FORMATTING ---
+    function parseToInches(input) {
+        if (typeof input === 'number') return input;
+        if (!input) return 0;
+        const str = input.toString().trim().toLowerCase();
+        const feetInchRegex = /^(\d+)'\s*(\d+(\.\d+)?)?"?$/;
+        let match = str.match(feetInchRegex);
+        if (match) {
+            const ft = parseFloat(match[1]) || 0;
+            const inch = parseFloat(match[2]) || 0;
+            return (ft * 12) + inch;
+        }
+        const inchRegex = /^(\d+(\.\d+)?)("?)$/;
+        match = str.match(inchRegex);
+        if (match) return parseFloat(match[1]);
+        const feetOnlyRegex = /^(\d+)'$/;
+        match = str.match(feetOnlyRegex);
+        if(match) return parseFloat(match[1]) * 12;
+        return parseFloat(str) || 0;
+    }
+
+    let currentUnitMode = 'Ft/In'; 
+
+    function formatDisplay(inches) {
+        if (currentUnitMode === 'Inches') {
+            return Math.round(inches * 100) / 100 + '"';
+        } else {
+            const ft = Math.floor(inches / 12);
+            const inch = Math.round((inches % 12) * 100) / 100;
+            if (ft === 0) return `${inch}"`;
+            if (inch === 0) return `${ft}'`;
+            return `${ft}' ${inch}"`;
+        }
+    }
+
+    // --- 2. SCENE SETUP ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf0f0f0);
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+    camera.position.set(280, 350, 280);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.localClippingEnabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // --- 3. LIGHTING (No Shadows) ---
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight.position.set(150, 400, 200);
+    scene.add(dirLight);
+    
+    const fillLight = new THREE.DirectionalLight(0xeef2ff, 0.5);
+    fillLight.position.set(-150, 200, -200);
+    scene.add(fillLight);
+
+    // --- 4. CLIPPING & MATERIALS ---
+    const clipPlanes = [
+        new THREE.Plane(new THREE.Vector3(1, 0, 0), 2000),
+        new THREE.Plane(new THREE.Vector3(-1, 0, 0), 2000),
+        new THREE.Plane(new THREE.Vector3(0, 0, 1), 2000),
+        new THREE.Plane(new THREE.Vector3(0, 0, -1), 2000)
+    ];
+
+    // --- GENERATE MOSAIC TEXTURE ---
+    function createMosaicTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+
+        // Grout color
+        ctx.fillStyle = '#dcdcdc';
+        ctx.fillRect(0, 0, 512, 512);
+
+        const cols = 8;
+        const rows = 8;
+        const pad = 4;
+        const w = (512 / cols) - pad;
+        const h = (512 / rows) - pad;
+
+        // Mosaic colors
+        const palette = ['#4da6ff', '#0080ff', '#0059b3', '#3399ff', '#66b3ff'];
+
+        for(let y=0; y<rows; y++) {
+            for(let x=0; x<cols; x++) {
+                const color = palette[Math.floor(Math.random() * palette.length)];
+                ctx.fillStyle = color;
+                // Draw Tile
+                ctx.fillRect(x * (512/cols) + pad/2, y * (512/rows) + pad/2, w, h);
+                
+                // Highlight
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                ctx.fillRect(x * (512/cols) + pad/2, y * (512/rows) + pad/2, w, h/2);
+            }
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+    }
+
+    const mosaicTexture = createMosaicTexture();
+
+    const createMat = (color, roughness) => new THREE.MeshStandardMaterial({
+        color: color, 
+        roughness: roughness, 
+        side: THREE.DoubleSide,
+        clippingPlanes: clipPlanes
+    });
+
+    const materials = {
+        ground: createMat(0x5c4033, 1),
+        gravel: createMat(0x666655, 1),
+        concrete: createMat(0x9e9e9e, 0.6), // Cradle
+        mikvahConcrete: createMat(0xcfcfcf, 0.5), // Inner Pour
+        keyIndentation: createMat(0x111111, 0.9),
+        waterstop: createMat(0x0000ff, 0.4),
+        hlm: createMat(0x222222, 0.2),
+        foam: createMat(0xffcccc, 0.9),
+        cover: createMat(0xb0b0b0, 0.5), // Cement cover (Floor Above Bor)
+        granite: createMat(0x505050, 0.4), // Bor Cover
+        backfill: createMat(0x6b5b4e, 1.0), // Dirt/Backfill
+        tiles: new THREE.MeshStandardMaterial({
+            map: mosaicTexture,
+            roughness: 0.2,
+            metalness: 0.1,
+            side: THREE.DoubleSide,
+            clippingPlanes: clipPlanes,
+            polygonOffset: true,
+            polygonOffsetFactor: -1, // Pull forward slightly
+        }),
+        water: new THREE.MeshStandardMaterial({
+            color: 0x00aaff,
+            transparent: true,
+            opacity: 0.55,
+            roughness: 0.1,
+            metalness: 0.1,
+            side: THREE.DoubleSide,
+            clippingPlanes: clipPlanes
+        }),
+        dimLine: new THREE.LineBasicMaterial({ color: 0x002266 }), 
+        dimText: new THREE.MeshBasicMaterial({ color: 0x000000 })
+    };
+
+    // --- 5. STATE MANAGEMENT ---
+    const params = {
+        // DRIVER: Mikvah Interior Dimensions
+        mikIntWidth: 96,
+        mikIntLength: 96,
+        mikIntHeight: 108, 
+
+        // Mikvah Construction Specs
+        mikWallThick: 12, 
+        mikFloorHeight: 48,
+        
+        // Bor (Pit) Dimensions
+        borSide: 'Right', // 'Right' or 'Left'
+        borWidth: 40, 
+        borLength: 72, 
+        borDepth: 30, 
+        ledgeWidth: 6, 
+        ledgeDrop: 6,
+
+        // Hole in Floor Above Bor
+            holeWallDist: 4,
+            holeLedgeW: 2,
+            holeLedgeDrop: 1,
+            holeWidth: 28, // 2'4"
+            holeLength: 24, // 2'
+
+        // Bor Cover (Granite)
+        coverHoleOffset: 4,
+
+        // Cradle (Calculated)
+        width: 113, 
+        length: 113, 
+        cradleDepth: 102, 
+
+        // Cradle Specs
+        floorExt: 12, 
+        wallThick: 12, 
+        gravel: 6, 
+        waterstopOffset: 0,
+        foamThick: 0.5,
+        
+        // Stairs
+        stairCount: 7,    
+        stairLen: 36,     // X-axis (width)
+        stairTread: 10,   // Z-axis (depth)
+        stairFirstDrop: 7.5,
+        stairRise: 7.5,
+        stairLastLen: 36, // Depth of bottom step
+        stairLastWidth: 36, // Width of bottom step
+        
+        stairLanding: true, 
+        stairLandingDrop: 4,
+        stairLandingWidth: 60, // Width (Left-Right span)
+        stairLandingLen: 36,   // Length (Front-Back span)
+
+        // Toggles
+        excludeFoam: true, // Default True
+    };
+    
+    // VIS Flags
+    const vis = {
+        ground: true, gravel: true, floor: true, keys: true,
+        waterstop: true, walls: true, hlm: true, foam: true,
+        mikFloor: true, mikWalls: true, 
+        tiles: true,
+        stairs: true,
+        floorAboveBor: true, borCover: true,
+        waterBor: true,     // Default ON
+        waterMikvah: true,  // Default ON
+        backfill: false, // Default OFF
+        dims: true 
+    };
+
+    const volStats = {
+        cuIn: "0",
+        gallons: "0",
+        liters: "0"
+    };
+
+    const guiStrings = {
+        mikIntWidth: formatDisplay(params.mikIntWidth),
+        mikIntLength: formatDisplay(params.mikIntLength),
+        mikIntHeight: formatDisplay(params.mikIntHeight),
+        mikWallThick: formatDisplay(params.mikWallThick),
+        mikFloorHeight: formatDisplay(params.mikFloorHeight),
+
+        borWidth: formatDisplay(params.borWidth),
+        borLength: formatDisplay(params.borLength),
+        borDepth: formatDisplay(params.borDepth),
+        ledgeWidth: formatDisplay(params.ledgeWidth),
+        ledgeDrop: formatDisplay(params.ledgeDrop),
+
+        // Hole GUI Strings
+        holeWallDist: formatDisplay(params.holeWallDist),
+        holeLedgeW: formatDisplay(params.holeLedgeW),
+        holeLedgeDrop: formatDisplay(params.holeLedgeDrop),
+        holeWidth: formatDisplay(params.holeWidth),
+        holeLength: formatDisplay(params.holeLength),
+
+        // Cover Strings
+        coverHoleOffset: formatDisplay(params.coverHoleOffset),
+
+        width: formatDisplay(params.width),
+        length: formatDisplay(params.length),
+        cradleDepth: formatDisplay(params.cradleDepth),
+        ext: formatDisplay(params.floorExt),
+        wallThick: formatDisplay(params.wallThick),
+        gravel: formatDisplay(params.gravel),
+        foamThick: formatDisplay(params.foamThick),
+
+        // Stair Strings
+        stairLen: formatDisplay(params.stairLen),
+        stairTread: formatDisplay(params.stairTread),
+        stairFirstDrop: formatDisplay(params.stairFirstDrop),
+        stairRise: formatDisplay(params.stairRise),
+        stairLastLen: formatDisplay(params.stairLastLen),
+        stairLastWidth: formatDisplay(params.stairLastWidth),
+        stairLandingDrop: formatDisplay(params.stairLandingDrop),
+        stairLandingWidth: formatDisplay(params.stairLandingWidth),
+        stairLandingLen: formatDisplay(params.stairLandingLen),
+    };
+
+    const mainGroup = new THREE.Group();
+    scene.add(mainGroup);
+    const dimGroup = new THREE.Group();
+    scene.add(dimGroup);
+    const labels = [];
+
+    // --- 6. BUILD LOGIC ---
+    let font = null;
+    new FontLoader().load('../vendor/three/fonts/helvetiker_bold.typeface.json', (f) => {
+        font = f;
+        updateDerivedDimensions(true);
+        // Auto-calculate landing width on load based on defaults
+        params.stairLandingWidth = params.mikIntWidth - params.stairLastWidth; 
+        updateGuiStrings();
+        document.getElementById('loading').style.display = 'none';
+        build();
+    });
+
+    function addDim(p1, p2, labelPrefix, overrideVal = null) {
+        if(!vis.dims || !font) return; 
+
+        // Handle Mirroring:
+        // If the structure is mirrored (Left side selected), the dimension points must also be mirrored
+        // so they appear in the correct visual location relative to the flipped geometry.
+        const v1 = p1.clone();
+        const v2 = p2.clone();
+        if (params.borSide === 'Left') {
+            v1.x *= -1;
+            v2.x *= -1;
+        }
+
+        const dist = v1.distanceTo(v2);
+        if(dist < 0.1) return;
+        
+        const displayVal = overrideVal !== null ? overrideVal : dist;
+        const label = labelPrefix ? `${labelPrefix}: ${formatDisplay(displayVal)}` : formatDisplay(displayVal);
+        
+        const geo = new THREE.BufferGeometry().setFromPoints([v1, v2]);
+        const line = new THREE.Line(geo, materials.dimLine);
+        dimGroup.add(line);
+        
+        const t = 2; 
+        const ticks = [
+            new THREE.Vector3(v1.x, v1.y-t, v1.z), new THREE.Vector3(v1.x, v1.y+t, v1.z),
+            new THREE.Vector3(v2.x, v2.y-t, v2.z), new THREE.Vector3(v2.x, v2.y+t, v2.z)
+        ];
+        const tLine = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(ticks), materials.dimLine);
+        dimGroup.add(tLine);
+        
+        const tGeom = new TextGeometry(label, { font: font, size: 4, height: 0 });
+        tGeom.center();
+        const mesh = new THREE.Mesh(tGeom, materials.dimText);
+        const mid = new THREE.Vector3().lerpVectors(v1, v2, 0.5);
+        mesh.position.copy(mid);
+        mesh.position.y += 3; 
+        dimGroup.add(mesh);
+        labels.push(mesh);
+    }
+
+    // --- HELPER: Add Box via Bounds ---
+    const addBox = (minX, maxX, minZ, maxZ, bottomY, topY, mat) => {
+        const w = maxX - minX;
+        const l = maxZ - minZ;
+        const h = topY - bottomY;
+        if (w <= 0.001 || l <= 0.001 || h <= 0.001) return;
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), mat);
+        mesh.position.set(minX + w/2, bottomY + h/2, minZ + l/2);
+        mainGroup.add(mesh);
+    };
+
+    // --- HELPER: Fix UVs for Tiling ---
+    const scaleUVs = (geometry, dimX, dimY, scale = 12) => {
+        const uvs = geometry.attributes.uv;
+        if(!uvs) return;
+        // Assumes standard Box or Plane UV mapping where U goes 0-1 along width, V goes 0-1 along height
+        // We want roughly 1 tile repeat per 'scale' units (e.g. 12 inches)
+        for (let i = 0; i < uvs.count; i++) {
+            const u = uvs.getX(i);
+            const v = uvs.getY(i);
+            uvs.setXY(i, u * (dimX / scale), v * (dimY / scale));
+        }
+        uvs.needsUpdate = true;
+    };
+
+    function build() {
+        mainGroup.clear();
+        dimGroup.clear();
+        labels.length = 0;
+
+        // --- LAYOUT MIRRORING ---
+        const mirror = (params.borSide === 'Left') ? -1 : 1;
+        mainGroup.scale.set(mirror, 1, 1);
+
+        const foamThick = params.foamThick;
+        
+        // GEOMETRY LOGIC: Always use "Real" dimensions for 3D model
+        const realW = params.mikIntWidth + (2 * params.mikWallThick) + (2 * foamThick);
+        const realL = params.mikIntLength + (2 * params.mikWallThick) + (2 * foamThick);
+        
+        // LABEL LOGIC: Nominal if excluded
+        const nominalW = params.excludeFoam ? (realW - 2*foamThick) : realW;
+        const nominalL = params.excludeFoam ? (realL - 2*foamThick) : realL;
+
+        const w = realW;
+        const l = realL;
+        const h = params.cradleDepth; 
+        const wt = params.wallThick;
+        const ext = params.floorExt;
+        const grav = params.gravel;
+
+        const outerW = w + wt*2;
+        const outerL = l + wt*2;
+        const floorW = outerW + ext*2;
+        const floorL = outerL + ext*2;
+        
+        const mWT = params.mikWallThick;
+        const mH = params.mikIntHeight; 
+        const mFH = params.mikFloorHeight;
+        
+        const mikStructureW = params.mikIntWidth + (2 * mWT);
+        const mikStructureL = params.mikIntLength + (2 * mWT);
+
+        const lDrop = params.ledgeDrop;
+        const lWidth = params.ledgeWidth;
+        const bW = params.borWidth;
+        const bL = params.borLength;
+        
+        const ledgeLevel = mFH - lDrop;
+        let borBottom = ledgeLevel - params.borDepth;
+        borBottom = Math.max(12, borBottom); 
+        const baseH = borBottom; 
+
+        // 1. Natural Ground
+        if(vis.ground) {
+            const g = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), materials.ground);
+            g.rotation.x = -Math.PI/2;
+            g.position.y = -15 - grav - 1; 
+            mainGroup.add(g);
+        }
+
+        // 2. Gravel
+        if(vis.gravel) {
+            const grGeo = new THREE.BoxGeometry(floorW+24, grav, floorL+24, 32, 1, 32);
+            const pos = grGeo.attributes.position;
+            for(let i=0; i<pos.count; i++){
+                if(pos.getY(i)>0) pos.setY(i, pos.getY(i) + Math.random()*2);
+            }
+            grGeo.computeVertexNormals();
+            const gravel = new THREE.Mesh(grGeo, materials.gravel);
+            gravel.position.y = -15 - (grav/2);
+            mainGroup.add(gravel);
+            addDim(new THREE.Vector3(-floorW/2-20, -15-grav, 0), new THREE.Vector3(-floorW/2-20, -15, 0), `Gravel`);
+        }
+
+        // 3. Cradle Floor
+        const ft = 15;
+        if(vis.floor) {
+            const fl = new THREE.Mesh(new THREE.BoxGeometry(floorW, ft, floorL), materials.concrete);
+            fl.position.y = -ft/2;
+            mainGroup.add(fl);
+            
+            // Use Nominal Dimensions for Labels if toggle is ON
+            addDim(new THREE.Vector3(-floorW/2, -ft-2, -floorL/2 - 30), new THREE.Vector3(floorW/2, -ft-2, -floorL/2 - 30), `Floor Width`, floorW - (realW - nominalW));
+            addDim(new THREE.Vector3(floorW/2 + 30, -ft-2, -floorL/2), new THREE.Vector3(floorW/2 + 30, -ft-2, floorL/2), `Floor Length`, floorL - (realL - nominalL));
+            addDim(new THREE.Vector3(floorW/2, -ft, floorL/2), new THREE.Vector3(floorW/2, 0, floorL/2), `Floor`);
+            addDim(new THREE.Vector3(-outerW/2, 1, 0), new THREE.Vector3(-floorW/2, 1, 0), `Ext`);
+        }
+
+        // 4. Keyway
+        const kw = 4; const kd = 2;
+        const cx = (w + wt)/2; const cz = (l + wt)/2;
+
+        if(vis.keys && vis.floor) {
+            const mkVoid = (width, len, x, z) => {
+                const k = new THREE.Mesh(new THREE.BoxGeometry(width, 0.05, len), materials.keyIndentation);
+                k.position.set(x, 0.02, z); 
+                mainGroup.add(k);
+            }
+            mkVoid(outerW - wt, kw, 0, cz);
+            mkVoid(outerW - wt, kw, 0, -cz);
+            mkVoid(kw, outerL - wt, cx, 0);
+            mkVoid(kw, outerL - wt, -cx, 0);
+        }
+
+        // 5. Waterstop
+        if(vis.waterstop && vis.floor) { 
+            const off = params.waterstopOffset;
+            const wsH = 4;
+            const mkWs = (width, len, x, z) => {
+                const ws = new THREE.Mesh(new THREE.BoxGeometry(width, wsH, len), materials.waterstop);
+                ws.position.set(x, wsH/2, z);
+                mainGroup.add(ws);
+            }
+            mkWs(outerW - wt, 0.5, 0, cz + off);
+            mkWs(outerW - wt, 0.5, 0, -cz - off);
+            mkWs(0.5, outerL - wt, cx + off, 0);
+            mkWs(0.5, outerL - wt, -cx - off, 0);
+        }
+
+        // 6. Walls
+        if(vis.walls) {
+            const mkWall = (width, len, x, z) => {
+                const wal = new THREE.Mesh(new THREE.BoxGeometry(width, h, len), materials.concrete);
+                wal.position.set(x, h/2, z);
+                mainGroup.add(wal);
+
+                if(vis.keys) {
+                    const isLongX = width > len; 
+                    const kW = isLongX ? width : kw;
+                    const kL = isLongX ? kw : len;
+                    const tongue = new THREE.Mesh(new THREE.BoxGeometry(kW, kd, kL), materials.concrete);
+                    tongue.position.set(x, -kd/2, z);
+                    mainGroup.add(tongue);
+                }
+            }
+            mkWall(outerW, wt, 0, (l+wt)/2);
+            mkWall(outerW, wt, 0, -(l+wt)/2);
+            mkWall(wt, l, -(w+wt)/2, 0);
+            mkWall(wt, l, (w+wt)/2, 0);
+
+            const leftDimX = -outerW/2 - 40;
+            addDim(new THREE.Vector3(leftDimX, 0, 0), new THREE.Vector3(leftDimX, h, 0), `Cradle Wall H (Excl. Floor)`);
+            addDim(new THREE.Vector3(-outerW/2, h+2, -outerL/2), new THREE.Vector3(-outerW/2 + wt, h+2, -outerL/2), `Wall`);
+        }
+
+        // 7. HLM & Foam
+        if(vis.hlm && vis.walls) {
+            const t = 0.2;
+            const mkCoat = (width, len, x, z) => {
+                const m = new THREE.Mesh(new THREE.BoxGeometry(width, h, len), materials.hlm);
+                m.position.set(x, h/2, z);
+                mainGroup.add(m);
+            }
+            mkCoat(w, t, 0, l/2 - t/2);
+            mkCoat(w, t, 0, -(l/2 - t/2));
+            mkCoat(t, l, -(w/2 - t/2), 0);
+            mkCoat(t, l, (w/2 - t/2), 0);
+        }
+        if(vis.foam && vis.walls) {
+            const mkF = (width, len, x, z) => {
+                const m = new THREE.Mesh(new THREE.BoxGeometry(width, h, len), materials.foam);
+                m.position.set(x, h/2, z);
+                mainGroup.add(m);
+            }
+            
+            const fW = mikStructureW + (2 * foamThick); 
+            const offsetW = (mikStructureW / 2) + (foamThick / 2);
+            const offsetL = (mikStructureL / 2) + (foamThick / 2);
+
+            mkF(fW, foamThick, 0, offsetL); 
+            mkF(fW, foamThick, 0, -offsetL); 
+            mkF(foamThick, mikStructureL, -offsetW, 0); 
+            mkF(foamThick, mikStructureL, offsetW, 0); 
+        }
+
+        // --- VARIABLES FOR TILES & MIKVAH FLOOR ---
+        const innerRight = params.mikIntWidth / 2;
+        const innerLeft = -params.mikIntWidth / 2;
+        const innerFront = params.mikIntLength / 2;
+        const innerBack = -params.mikIntLength / 2;
+        
+        const rightLedgeEdge = innerRight; 
+        const frontLedgeEdge = innerFront;
+        const backLedgeEdge = innerBack;
+        
+        const rightBorEdge = rightLedgeEdge - lWidth;
+        const leftBorEdge = rightBorEdge - bW;
+        const leftLedgeEdge = leftBorEdge - lWidth;
+        
+        const borFrontEdge = frontLedgeEdge - lWidth;
+        const borBackEdge = backLedgeEdge + lWidth;
+        
+        const borCenterX = (rightBorEdge + leftBorEdge) / 2;
+        const borCenterZ = (borFrontEdge + borBackEdge) / 2;
+
+        // 8. MIKVAH FLOOR & STAIRS
+        if(vis.mikFloor) {
+            const mkChunk = (width, len, height, x, z) => {
+                if(width <= 0.01 || len <= 0.01) return;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(width, height, len), materials.mikvahConcrete);
+                m.position.set(x, height/2, z);
+                mainGroup.add(m);
+            };
+            
+            if(leftLedgeEdge > innerLeft) {
+                mkChunk(leftLedgeEdge - innerLeft, params.mikIntLength, mFH, (leftLedgeEdge + innerLeft)/2, 0);
+            }
+
+            // Ledge Ring
+            const holeL = borFrontEdge - borBackEdge; 
+            mkChunk(lWidth, params.mikIntLength, ledgeLevel, rightLedgeEdge - lWidth/2, 0);
+            const spanW = (rightLedgeEdge - lWidth) - leftLedgeEdge;
+            mkChunk(spanW, lWidth, ledgeLevel, (leftLedgeEdge + (rightLedgeEdge-lWidth))/2, frontLedgeEdge - lWidth/2);
+            mkChunk(spanW, lWidth, ledgeLevel, (leftLedgeEdge + (rightLedgeEdge-lWidth))/2, backLedgeEdge + lWidth/2);
+            mkChunk(lWidth, holeL, ledgeLevel, leftLedgeEdge + lWidth/2, borCenterZ);
+
+            // Bor Base
+            mkChunk(bW, bL, baseH, borCenterX, borCenterZ);
+            
+            // --- TILING: FLOOR (Perimeter not dropping into Bor) ---
+            if (vis.tiles) {
+                const tileY = mFH + 0.05; // Slightly above floor
+                if(leftLedgeEdge > innerLeft) {
+                    const tileW = leftLedgeEdge - innerLeft;
+                    const tileL = params.mikIntLength;
+                    const geo = new THREE.PlaneGeometry(tileW, tileL);
+                    scaleUVs(geo, tileW, tileL);
+                    const m = new THREE.Mesh(geo, materials.tiles);
+                    m.rotation.x = -Math.PI/2;
+                    m.position.set((leftLedgeEdge + innerLeft)/2, tileY, 0);
+                    mainGroup.add(m);
+                }
+            }
+            
+            // --- STAIRS ---
+            const stairRise = params.stairRise;
+            const stairTread = params.stairTread;
+
+            // Helper for ramp calc
+            const topZ = innerFront; 
+            const topY = (mH - params.stairFirstDrop) - stairRise;
+            const lastStepIdx = params.stairCount - 1;
+            const botZ = innerFront - (lastStepIdx * stairTread);
+            const botY = (mH - params.stairFirstDrop - (lastStepIdx * stairRise)) - stairRise;
+            const getRampY = (z) => {
+                if (Math.abs(botZ - topZ) < 0.001) return botY;
+                const t = (z - topZ) / (botZ - topZ); 
+                return topY + (t * (botY - topY));
+            };
+
+            // Stair Shape Generation (reused for concrete and tiles)
+            const createStairShape = () => {
+                const shape = new THREE.Shape();
+                let currentZ = innerFront;
+                let currentY = mH - params.stairFirstDrop;
+                shape.moveTo(currentZ, currentY);
+                for (let i = 0; i < params.stairCount - 1; i++) {
+                    const thisTread = stairTread; 
+                    const thisDrop = (i === 0) ? 0 : stairRise; 
+                    if (thisDrop > 0) { currentY -= thisDrop; shape.lineTo(currentZ, currentY); }
+                    currentZ -= thisTread;
+                    shape.lineTo(currentZ, currentY);
+                }
+                shape.lineTo(currentZ, getRampY(currentZ));
+                shape.lineTo(innerFront, topY);
+                shape.lineTo(innerFront, mH - params.stairFirstDrop);
+                return shape;
+            };
+
+            if (vis.stairs && params.stairCount > 0) {
+                
+                // 1. Concrete Structure (Upper Flight)
+                if (params.stairCount > 1) {
+                    const shape = createStairShape();
+                    const geometry = new THREE.ExtrudeGeometry(shape, { depth: params.stairLen, bevelEnabled: false, steps: 1 });
+                    const mesh = new THREE.Mesh(geometry, materials.mikvahConcrete);
+                    mesh.rotation.y = -Math.PI / 2;
+                    mesh.position.set(innerRight, 0, 0);
+                    mainGroup.add(mesh);
+                    
+                    // --- TILING: STAIRS ---
+                    if(vis.tiles) {
+                        const sideGeo = new THREE.ShapeGeometry(shape);
+                        scaleUVs(sideGeo, params.mikIntLength, mH); 
+                        const sideMesh = new THREE.Mesh(sideGeo, materials.tiles);
+                        sideMesh.rotation.y = -Math.PI / 2;
+                        sideMesh.position.set(innerRight - params.stairLen - 0.1, 0, 0); 
+                        mainGroup.add(sideMesh);
+                        
+                        const skinGeo = new THREE.ExtrudeGeometry(shape, { depth: params.stairLen + 0.2, bevelEnabled: false, steps: 1 });
+                        const skin = new THREE.Mesh(skinGeo, materials.tiles);
+                        skin.rotation.y = -Math.PI / 2;
+                        skin.position.set(innerRight + 0.1, 0.1, 0); 
+                        mainGroup.add(skin);
+                    }
+                }
+
+                // 2. Bottom Step (Box)
+                const totalDrop = params.stairFirstDrop + ((params.stairCount - 1) * stairRise);
+                const lastStepTopY = mH - totalDrop;
+                const lastStepBottomY = lastStepTopY - stairRise; 
+                const lastStepRiserZ = botZ; 
+                const lastStepNoseZ = lastStepRiserZ - params.stairLastLen; 
+
+                addBox(
+                    innerRight - params.stairLastWidth, 
+                    innerRight, 
+                    lastStepNoseZ, 
+                    lastStepRiserZ, 
+                    lastStepBottomY, 
+                    lastStepTopY, 
+                    materials.mikvahConcrete
+                );
+
+                if(vis.tiles) {
+                    const tsW = params.stairLastWidth;
+                    const tsD = params.stairLastLen;
+                    const tsH = lastStepTopY - lastStepBottomY;
+                    const tBox = new THREE.BoxGeometry(tsW+0.2, tsH+0.2, tsD+0.2); 
+                    scaleUVs(tBox, tsW, tsD);
+                    const tMesh = new THREE.Mesh(tBox, materials.tiles);
+                    tMesh.position.set(
+                        (innerRight - tsW) + tsW/2 + 0.05, 
+                        lastStepBottomY + tsH/2, 
+                        lastStepNoseZ + tsD/2
+                    );
+                    mainGroup.add(tMesh);
+                }
+
+                // --- ADDITIONAL LANDING ---
+                if (params.stairLanding) {
+                    const landingDrop = params.stairLandingDrop;
+                    const landingTopY = lastStepTopY - landingDrop;
+                    const landingBottomY = landingTopY - landingDrop; 
+
+                    addBox(
+                        innerRight - params.stairLastWidth - params.stairLandingWidth, 
+                        innerRight - params.stairLastWidth, 
+                        lastStepNoseZ, 
+                        lastStepNoseZ + params.stairLandingLen, 
+                        landingBottomY,
+                        landingTopY,
+                        materials.mikvahConcrete
+                    );
+
+                    if(vis.tiles) {
+                        const lW = params.stairLandingWidth;
+                        const lL = params.stairLandingLen;
+                        const lH = landingTopY - landingBottomY;
+                        const lBox = new THREE.BoxGeometry(lW+0.2, lH+0.2, lL+0.2);
+                        scaleUVs(lBox, lW, lL);
+                        const lMesh = new THREE.Mesh(lBox, materials.tiles);
+                        lMesh.position.set(
+                            (innerRight - params.stairLastWidth - lW) + lW/2,
+                            landingBottomY + lH/2,
+                            lastStepNoseZ + lL/2
+                        );
+                        mainGroup.add(lMesh);
+                    }
+                }
+            }
+
+            // --- FLOOR ABOVE BOR & COVER ---
+            const slabMinX = leftLedgeEdge;
+            const slabMaxX = rightLedgeEdge;
+            const slabMinZ = backLedgeEdge;
+            const slabMaxZ = frontLedgeEdge;
+
+            const floorH = lDrop; 
+            const floorYBottom = ledgeLevel;
+            const floorYTop = ledgeLevel + floorH;
+
+            // Hole & Ledge Calculation
+                const wallOff = params.holeWallDist;
+                const ledgeW = params.holeLedgeW;
+                const ledgeDrop = params.holeLedgeDrop; 
+                const holeOpenW = params.holeWidth;
+                const holeOpenL = params.holeLength;
+
+                let cutMaxX, cutMinX, cutMaxZ, cutMinZ;
+
+                // Fixed: Always "Front Corner" relative to the Bor position
+                cutMaxX = slabMaxX - wallOff;
+                cutMaxZ = slabMaxZ - wallOff;
+                cutMinX = cutMaxX - (holeOpenW + 2*ledgeW);
+                cutMinZ = cutMaxZ - (holeOpenL + 2*ledgeW);
+
+                const holeMaxX = cutMaxX - ledgeW;
+                const holeMinX = cutMinX + ledgeW;
+                const holeMaxZ = cutMaxZ - ledgeW;
+                const holeMinZ = cutMinZ + ledgeW;
+
+            if(vis.floorAboveBor) {
+                addBox(slabMinX, slabMaxX, cutMaxZ, slabMaxZ, floorYBottom, floorYTop, materials.cover); 
+                addBox(slabMinX, slabMaxX, slabMinZ, cutMinZ, floorYBottom, floorYTop, materials.cover); 
+                addBox(cutMaxX, slabMaxX, cutMinZ, cutMaxZ, floorYBottom, floorYTop, materials.cover); 
+                addBox(slabMinX, cutMinX, cutMinZ, cutMaxZ, floorYBottom, floorYTop, materials.cover); 
+
+                const ledgeYTop = floorYTop - ledgeDrop;
+                addBox(cutMinX, cutMaxX, holeMaxZ, cutMaxZ, floorYBottom, ledgeYTop, materials.cover);
+                addBox(cutMinX, cutMaxX, cutMinZ, holeMinZ, floorYBottom, ledgeYTop, materials.cover);
+                addBox(holeMaxX, cutMaxX, holeMinZ, holeMaxZ, floorYBottom, ledgeYTop, materials.cover);
+                addBox(cutMinX, holeMinX, holeMinZ, holeMaxZ, floorYBottom, ledgeYTop, materials.cover);
+
+                // --- TILES ON FLOOR ABOVE BOR (Matching Style) ---
+                if (vis.tiles) {
+                    const tileY = floorYTop + 0.05; 
+                    
+                    const addTileLayer = (minX, maxX, minZ, maxZ) => {
+                        const w = maxX - minX;
+                        const l = maxZ - minZ;
+                        if (w <= 0.01 || l <= 0.01) return;
+                        const geo = new THREE.PlaneGeometry(w, l);
+                        scaleUVs(geo, w, l);
+                        const m = new THREE.Mesh(geo, materials.tiles);
+                        m.rotation.x = -Math.PI / 2;
+                        m.position.set(minX + w/2, tileY, minZ + l/2);
+                        mainGroup.add(m);
+                    };
+
+                    // Tile only the upper floor sections, not the ledge drop
+                    addTileLayer(slabMinX, slabMaxX, cutMaxZ, slabMaxZ);
+                    addTileLayer(slabMinX, slabMaxX, slabMinZ, cutMinZ);
+                    addTileLayer(cutMaxX, slabMaxX, cutMinZ, cutMaxZ);
+                    addTileLayer(slabMinX, cutMinX, cutMinZ, cutMaxZ);
+                }
+            }
+
+            if(vis.borCover) {
+                const cvMinX = cutMinX; const cvMaxX = cutMaxX;
+                const cvMinZ = cutMinZ; const cvMaxZ = cutMaxZ;
+                const cvYBottom = ledgeLevel + (floorH - ledgeDrop);
+                const cvYTop = floorYTop;
+                const hSize = 4; const hOffset = params.coverHoleOffset;
+                const cvMidZ = (cvMinZ + cvMaxZ) / 2;
+                const hzMin = cvMidZ - (hSize/2); const hzMax = cvMidZ + (hSize/2);
+                const h1MaxX = cvMaxX - hOffset; const h1MinX = h1MaxX - hSize;
+                const h2MinX = cvMinX + hOffset; const h2MaxX = h2MinX + hSize;
+
+                addBox(cvMinX, cvMaxX, cvMinZ, hzMin, cvYBottom, cvYTop, materials.granite);
+                addBox(cvMinX, cvMaxX, hzMax, cvMaxZ, cvYBottom, cvYTop, materials.granite);
+                if(h2MinX > cvMinX) addBox(cvMinX, h2MinX, hzMin, hzMax, cvYBottom, cvYTop, materials.granite);
+                if(h1MinX > h2MaxX) addBox(h2MaxX, h1MinX, hzMin, hzMax, cvYBottom, cvYTop, materials.granite);
+                if(cvMaxX > h1MaxX) addBox(h1MaxX, cvMaxX, hzMin, hzMax, cvYBottom, cvYTop, materials.granite);
+            }
+
+            // ---------------------
+            // ---------------------
+            // NEW: WATER IN BOR HATACHTON
+            // ---------------------
+            if (vis.waterBor) {
+                // 1. Base Water: Fills the main pit up to the main ledge (bottom of floor slab)
+                const waterH = ledgeLevel - baseH;
+                if (waterH > 0) {
+                    const borWater = new THREE.Mesh(
+                        new THREE.BoxGeometry(bW, waterH, bL),
+                        materials.water
+                    );
+                    borWater.position.set(borCenterX, baseH + waterH/2, borCenterZ);
+                    mainGroup.add(borWater);
+                }
+
+                // 2. Hole Water: If floor is present, water rises into the hole up to the ledge height
+                if (vis.floorAboveBor && typeof holeMinX !== 'undefined') {
+                    // Calculate water extension height inside the hole
+                    // Starts at: ledgeLevel (Bottom of floor slab)
+                    // Ends at: floorYTop - params.holeLedgeDrop (Top of the granite/concrete ledge)
+                    const holeWaterBottom = ledgeLevel;
+                    const holeWaterTop = floorYTop - params.holeLedgeDrop;
+                    const holeWaterH = holeWaterTop - holeWaterBottom;
+
+                    const hwW = holeMaxX - holeMinX;
+                    const hwL = holeMaxZ - holeMinZ;
+
+                    if (holeWaterH > 0.01 && hwW > 0.01 && hwL > 0.01) {
+                        const holeWater = new THREE.Mesh(
+                            new THREE.BoxGeometry(hwW, holeWaterH, hwL),
+                            materials.water
+                        );
+                        // Position centered in the hole opening
+                        holeWater.position.set(
+                            (holeMinX + holeMaxX) / 2, 
+                            holeWaterBottom + holeWaterH/2, 
+                            (holeMinZ + holeMaxZ) / 2
+                        );
+                        mainGroup.add(holeWater);
+                    }
+                }
+            }
+
+            // ---------------------
+            // NEW: WATER IN MIKVAH (51" DEEP)
+            // ---------------------
+            if (vis.waterMikvah) {
+                const mikWaterDepth = 51;
+                const mikWater = new THREE.Mesh(
+                    new THREE.BoxGeometry(params.mikIntWidth, mikWaterDepth, params.mikIntLength),
+                    materials.water
+                );
+                // Position: Center (0,0,0) in X/Z, Y sits on mFH
+                mikWater.position.set(0, mFH + mikWaterDepth/2, 0);
+                mainGroup.add(mikWater);
+            }
+
+            addDim(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, mFH, 0), `Floor H`);
+        }
+
+        // 9. MIKVAH WALLS
+        if(vis.mikWalls) {
+            const mkMWall = (width, len, x, z) => {
+                const m = new THREE.Mesh(new THREE.BoxGeometry(width, mH, len), materials.mikvahConcrete);
+                m.position.set(x, mH/2, z);
+                mainGroup.add(m);
+            };
+            
+            const realIntW = params.mikIntWidth;
+            const realIntL = params.mikIntLength;
+            
+            const fullW = realIntW + (2 * mWT);
+            const sideL = realIntL;
+            
+            mkMWall(fullW, mWT, 0, (realIntL + mWT)/2); // Front
+            mkMWall(fullW, mWT, 0, -(realIntL + mWT)/2); // Back
+            mkMWall(mWT, sideL, -(realIntW + mWT)/2, 0); // Left
+            mkMWall(mWT, sideL, (realIntW + mWT)/2, 0); // Right
+            
+            // --- TILING: INTERIOR WALLS ---
+            if(vis.tiles) {
+                const tileH = mH - mFH;
+                const tileY = mFH + (tileH / 2);
+                const mkTileWall = (w, l, x, z, rotY) => {
+                    const geo = new THREE.PlaneGeometry(w, tileH);
+                    scaleUVs(geo, w, tileH);
+                    const m = new THREE.Mesh(geo, materials.tiles);
+                    m.rotation.y = rotY;
+                    m.position.set(x, tileY, z);
+                    mainGroup.add(m);
+                };
+                const offset = 0.05; 
+                mkTileWall(realIntW, 0, 0, innerFront - offset, Math.PI); 
+                mkTileWall(realIntW, 0, 0, innerBack + offset, 0);
+                mkTileWall(realIntL, 0, innerLeft + offset, 0, Math.PI/2);
+                mkTileWall(realIntL, 0, innerRight - offset, 0, -Math.PI/2);
+            }
+
+            const rightDimX = outerW/2 + 40;
+            addDim(new THREE.Vector3(rightDimX, 0, 0), new THREE.Vector3(rightDimX, mH, 0), `Mikvah Wall H`);
+            
+            addDim(
+                new THREE.Vector3(-realIntW/2, mFH + 10, -realIntL/2 + 5), 
+                new THREE.Vector3(realIntW/2, mFH + 10, -realIntL/2 + 5), 
+                `Width (Inner)`
+            );
+            addDim(
+                new THREE.Vector3(-realIntW/2 + 5, mFH + 10, -realIntL/2), 
+                new THREE.Vector3(-realIntW/2 + 5, mFH + 10, realIntL/2), 
+                `Length (Inner)`
+            );
+        }
+        
+        // 10. BACKFILL
+        if(vis.backfill) {
+            const fillSize = 800;
+            const mkFill = (w, d, len, x, y, z) => {
+                if (w <= 0 || len <= 0 || d <= 0) return;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(w, d, len), materials.backfill);
+                m.position.set(x, y, z);
+                mainGroup.add(m);
+            };
+            const lowerFillBottom = -15 - params.gravel; 
+            const lowerFillTop = 0; 
+            const lowerH = lowerFillTop - lowerFillBottom;
+            const lowerY = lowerFillBottom + (lowerH / 2);
+            const fW = floorW;
+            const fL = floorL;
+            mkFill((fillSize - fW)/2, lowerH, fillSize, (fW + fillSize)/4, lowerY, 0); 
+            mkFill((fillSize - fW)/2, lowerH, fillSize, -(fW + fillSize)/4, lowerY, 0); 
+            mkFill(fW, lowerH, (fillSize - fL)/2, 0, lowerY, (fL + fillSize)/4); 
+            mkFill(fW, lowerH, (fillSize - fL)/2, 0, lowerY, -(fL + fillSize)/4); 
+            const upperH = h;
+            const upperY = h / 2;
+            const ow = outerW;
+            const ol = outerL;
+            mkFill((fillSize - ow)/2, upperH, fillSize, (ow + fillSize)/4, upperY, 0);
+            mkFill((fillSize - ow)/2, upperH, fillSize, -(ow + fillSize)/4, upperY, 0);
+            mkFill(ow, upperH, (fillSize - ol)/2, 0, upperY, (ol + fillSize)/4);
+            mkFill(ow, upperH, (fillSize - ol)/2, 0, upperY, -(ol + fillSize)/4);
+        }
+        
+        updateDimVisibility();
+    }
+
+    // --- 7. INPUT HANDLING ---
+    function updateDerivedDimensions(resetHeight = false) {
+        const foam = params.foamThick;
+        const wall = params.mikWallThick;
+        const foamAdd = params.excludeFoam ? 0 : (2 * foam);
+        params.width = params.mikIntWidth + (2 * wall) + foamAdd;
+        params.length = params.mikIntLength + (2 * wall) + foamAdd;
+        if(resetHeight) params.cradleDepth = params.mikIntHeight - 6;
+        const calculatedBorLen = params.mikIntLength - (2 * params.ledgeWidth);
+        if(calculatedBorLen > 0) params.borLength = calculatedBorLen;
+        const volCuIn = params.borWidth * params.borLength * params.borDepth;
+        const volGal = volCuIn / 231;
+        const volLit = volGal * 3.78541;
+        volStats.cuIn = Math.max(0, Math.round(volCuIn)).toLocaleString();
+        volStats.gallons = Math.max(0, volGal.toFixed(1)).toLocaleString();
+        volStats.liters = Math.max(0, volLit.toFixed(1)).toLocaleString();
+    }
+
+    function commitChanges() {
+        params.mikIntWidth = parseToInches(guiStrings.mikIntWidth);
+        params.mikIntLength = parseToInches(guiStrings.mikIntLength);
+        params.mikIntHeight = parseToInches(guiStrings.mikIntHeight);
+        params.mikWallThick = parseToInches(guiStrings.mikWallThick);
+        params.mikFloorHeight = parseToInches(guiStrings.mikFloorHeight);
+
+        params.borWidth = parseToInches(guiStrings.borWidth);
+        params.borDepth = parseToInches(guiStrings.borDepth); 
+        params.ledgeWidth = parseToInches(guiStrings.ledgeWidth);
+        params.ledgeDrop = parseToInches(guiStrings.ledgeDrop);
+        
+        params.holeWallDist = parseToInches(guiStrings.holeWallDist);
+        params.holeLedgeW = parseToInches(guiStrings.holeLedgeW);
+        params.holeLedgeDrop = parseToInches(guiStrings.holeLedgeDrop);
+        params.holeWidth = parseToInches(guiStrings.holeWidth);
+        params.holeLength = parseToInches(guiStrings.holeLength);
+        params.coverHoleOffset = parseToInches(guiStrings.coverHoleOffset);
+        params.cradleDepth = parseToInches(guiStrings.cradleDepth);
+        params.floorExt = parseToInches(guiStrings.ext);
+        params.wallThick = parseToInches(guiStrings.wallThick);
+        params.gravel = parseToInches(guiStrings.gravel);
+        params.foamThick = parseToInches(guiStrings.foamThick);
+
+        // Stair Params
+        params.stairLen = parseToInches(guiStrings.stairLen);
+        params.stairTread = parseToInches(guiStrings.stairTread);
+        params.stairFirstDrop = parseToInches(guiStrings.stairFirstDrop);
+        params.stairRise = parseToInches(guiStrings.stairRise);
+        params.stairLastLen = parseToInches(guiStrings.stairLastLen);
+        params.stairLastWidth = parseToInches(guiStrings.stairLastWidth);
+        params.stairLandingDrop = parseToInches(guiStrings.stairLandingDrop);
+        params.stairLandingWidth = parseToInches(guiStrings.stairLandingWidth);
+        params.stairLandingLen = parseToInches(guiStrings.stairLandingLen);
+
+        updateDerivedDimensions(false);
+        updateGuiStrings();
+        build();
+    }
+
+    function updateGuiStrings() {
+        guiStrings.mikIntWidth = formatDisplay(params.mikIntWidth);
+        guiStrings.mikIntLength = formatDisplay(params.mikIntLength);
+        guiStrings.mikIntHeight = formatDisplay(params.mikIntHeight);
+        guiStrings.mikWallThick = formatDisplay(params.mikWallThick);
+        guiStrings.mikFloorHeight = formatDisplay(params.mikFloorHeight);
+
+        guiStrings.borWidth = formatDisplay(params.borWidth);
+        guiStrings.borLength = formatDisplay(params.borLength);
+        guiStrings.borDepth = formatDisplay(params.borDepth);
+        guiStrings.ledgeWidth = formatDisplay(params.ledgeWidth);
+        guiStrings.ledgeDrop = formatDisplay(params.ledgeDrop);
+
+        guiStrings.holeWallDist = formatDisplay(params.holeWallDist);
+        guiStrings.holeLedgeW = formatDisplay(params.holeLedgeW);
+        guiStrings.holeLedgeDrop = formatDisplay(params.holeLedgeDrop);
+        guiStrings.holeWidth = formatDisplay(params.holeWidth);
+        guiStrings.holeLength = formatDisplay(params.holeLength);
+        guiStrings.coverHoleOffset = formatDisplay(params.coverHoleOffset);
+
+        guiStrings.width = formatDisplay(params.width);
+        guiStrings.length = formatDisplay(params.length);
+        guiStrings.cradleDepth = formatDisplay(params.cradleDepth);
+        guiStrings.foamThick = formatDisplay(params.foamThick);
+        guiStrings.gravel = formatDisplay(params.gravel);
+
+        guiStrings.stairLen = formatDisplay(params.stairLen);
+        guiStrings.stairTread = formatDisplay(params.stairTread);
+        guiStrings.stairFirstDrop = formatDisplay(params.stairFirstDrop);
+        guiStrings.stairRise = formatDisplay(params.stairRise);
+        guiStrings.stairLastLen = formatDisplay(params.stairLastLen);
+        guiStrings.stairLastWidth = formatDisplay(params.stairLastWidth);
+        guiStrings.stairLandingDrop = formatDisplay(params.stairLandingDrop);
+        guiStrings.stairLandingWidth = formatDisplay(params.stairLandingWidth);
+        guiStrings.stairLandingLen = formatDisplay(params.stairLandingLen);
+
+        gui.controllersRecursive().forEach(c => c.updateDisplay());
+    }
+
+    // --- 8. ANIMATION ---
+    async function runAnimation() {
+        const dimsWereOn = vis.dims;
+        const floorBorWasOn = vis.floorAboveBor; 
+        const coverWasOn = vis.borCover;
+        const stairsWasOn = vis.stairs;
+        const tilesWasOn = vis.tiles;
+        
+        // New flags to restore later if needed, though usually user wants them off to start anim
+        vis.waterBor = false; 
+        vis.waterMikvah = false;
+
+        Object.keys(vis).forEach(k => vis[k] = false);
+        build();
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+
+        await wait(500); vis.ground = true; build();
+        await wait(500); vis.gravel = true; build();
+        await wait(500); vis.floor = true; vis.keys = true; build();
+        await wait(500); vis.waterstop = true; build();
+        await wait(800); vis.walls = true; build();
+        await wait(500); vis.hlm = true; build();
+        await wait(500); vis.foam = true; build();
+        await wait(800); vis.mikFloor = true; build();
+        await wait(800); vis.mikWalls = true; build();
+        
+        if(floorBorWasOn) { await wait(600); vis.floorAboveBor = true; build(); }
+        if(coverWasOn) { await wait(600); vis.borCover = true; build(); }
+        if(stairsWasOn) { await wait(800); vis.stairs = true; build(); }
+        // Tiles animate last
+        if(tilesWasOn) { await wait(800); vis.tiles = true; build(); }
+        
+        // --- NEW: WATER ANIMATION STEPS ---
+        await wait(600); vis.waterBor = true; build();
+        await wait(600); vis.waterMikvah = true; build();
+
+        if(dimsWereOn) { await wait(800); vis.dims = true; build(); }
+        gui.controllersRecursive().forEach(c => c.updateDisplay());
+    }
+
+    // --- 9. DIMENSION VISIBILITY ---
+    function updateDimVisibility() {
+        const cutActive = (clipParams.x < 1950 || clipParams.nx < 1950 || clipParams.z < 1950 || clipParams.nz < 1950);
+        if (cutActive) dimGroup.visible = false;
+        else dimGroup.visible = vis.dims;
+    }
+
+    // --- 10. GUI SETUP ---
+    const gui = new GUI({ title: 'Construction Controls', width: 340 });
+
+    const fSet = gui.addFolder('1. Settings');
+    fSet.add({ mode: 'Ft/In' }, 'mode', ['Ft/In', 'Inches']).name('Units').onChange(v => {
+        currentUnitMode = v; updateGuiStrings(); build();
+    });
+
+    // 2. Mikvah Dimensions
+    const fMik = gui.addFolder('2. Mikvah Dimensions');
+    fMik.add(guiStrings, 'mikIntWidth').name('Interior Width').onFinishChange(commitChanges);
+    fMik.add(guiStrings, 'mikIntLength').name('Interior Length').onFinishChange(commitChanges);
+    fMik.add(guiStrings, 'mikIntHeight').name('Interior Height').onFinishChange(commitChanges);
+    fMik.add(guiStrings, 'mikWallThick').name('Wall Thickness').onFinishChange(commitChanges);
+    fMik.add(guiStrings, 'mikFloorHeight').name('Floor Height').onFinishChange(commitChanges);
+    fMik.add({ update: commitChanges }, 'update').name('↻ UPDATE DIMENSIONS');
+
+    // 3. Cradle 
+    const fCradle = gui.addFolder('3. Cradle (Calculated)');
+    fCradle.add(guiStrings, 'width').name('Cradle Width').disable().listen();
+    fCradle.add(guiStrings, 'length').name('Cradle Length').disable().listen();
+    fCradle.add(guiStrings, 'cradleDepth').name('Cradle Height').onFinishChange(commitChanges);
+    fCradle.add(guiStrings, 'wallThick').name('Cradle Wall Thick').onFinishChange(commitChanges);
+    fCradle.add(guiStrings, 'ext').name('Floor Protrusion').onFinishChange(commitChanges);
+    fCradle.add(guiStrings, 'gravel').name('Gravel Depth').onFinishChange(commitChanges);
+    
+    const foamCtrl = fCradle.add(guiStrings, 'foamThick').name('Foam Thickness').onFinishChange(commitChanges);
+    fCradle.add(params, 'excludeFoam').name('Exclude Foam from Ext. Dims').onChange(v => {
+        if(v) foamCtrl.disable(); else foamCtrl.enable();
+        commitChanges();
+    });
+    if(params.excludeFoam) foamCtrl.disable();
+    fCradle.add({ update: commitChanges }, 'update').name('↻ UPDATE DIMENSIONS');
+
+    // 4. Bor Specs
+    const fBor = gui.addFolder('4. Bor (Pit) Specs');
+    fBor.add(params, 'borSide', ['Right', 'Left']).name('Bor Placement').onChange(build);
+    fBor.add(guiStrings, 'borWidth').name('Bor Width').onFinishChange(commitChanges);
+    fBor.add(guiStrings, 'borLength').name('Bor Length (Auto)').disable(); 
+    fBor.add(guiStrings, 'borDepth').name('Depth from Ledge').onFinishChange(commitChanges);
+    fBor.add(guiStrings, 'ledgeWidth').name('Ledge Width').onFinishChange(commitChanges);
+    fBor.add(guiStrings, 'ledgeDrop').name('Ledge Drop').onFinishChange(commitChanges);
+    fBor.add({ update: commitChanges }, 'update').name('↻ UPDATE DIMENSIONS');
+    
+    // 5. Bor Volume
+    const fVol = gui.addFolder('5. Bor Volume (To Ledge)');
+    fVol.add(volStats, 'cuIn').name('Cubic Inches').listen().disable();
+    fVol.add(volStats, 'gallons').name('Gallons').listen().disable();
+    fVol.add(volStats, 'liters').name('Liters').listen().disable();
+
+    // 6. Floor Hole
+        const fHole = gui.addFolder('6. Floor Hole');
+        fHole.add(guiStrings, 'holeWallDist').name('Offset from Wall').onFinishChange(commitChanges);
+        fHole.add(guiStrings, 'holeLedgeW').name('Hole Ledge Width').onFinishChange(commitChanges);
+        fHole.add(guiStrings, 'holeLedgeDrop').name('Ledge Drop Depth').onFinishChange(commitChanges);
+        fHole.add(guiStrings, 'holeWidth').name('Hole Width (X)').onFinishChange(commitChanges);
+        fHole.add(guiStrings, 'holeLength').name('Hole Length (Z)').onFinishChange(commitChanges);
+
+    // 7. Bor Cover
+    const fCover = gui.addFolder('7. Bor Cover (Granite)');
+    fCover.add(vis, 'borCover').name('Show Cover').onChange(build).listen();
+    fCover.add(guiStrings, 'coverHoleOffset').name('Side Offset').onFinishChange(commitChanges);
+
+    // 8. Stairs
+    const fStairs = gui.addFolder('8. Stairs');
+    fStairs.add(params, 'stairCount', 1, 20, 1).name('Number of Steps').onChange(build);
+    fStairs.add(guiStrings, 'stairLen').name('Step Width').onFinishChange(commitChanges);
+    fStairs.add(guiStrings, 'stairTread').name('Step Depth').onFinishChange(commitChanges);
+    fStairs.add(guiStrings, 'stairFirstDrop').name('First Step Drop').onFinishChange(commitChanges);
+    fStairs.add(guiStrings, 'stairRise').name('Standard Step Rise').onFinishChange(commitChanges);
+    fStairs.add(guiStrings, 'stairLastLen').name('Bottom Step Depth').onFinishChange(commitChanges);
+    fStairs.add(guiStrings, 'stairLastWidth').name('Bottom Step Width').onFinishChange(commitChanges);
+    
+    fStairs.add(params, 'stairLanding').name('Add Bottom Landing').onChange(v => {
+        if (v) {
+            params.stairFirstDrop = 7.0;
+            params.stairLen = 36;
+            params.stairTread = 10;
+            params.stairRise = 7.5;
+            params.stairLandingDrop = 4;
+            params.stairLandingWidth = params.mikIntWidth - params.stairLastWidth; 
+        }
+        updateGuiStrings();
+        build();
+    });
+
+    fStairs.add(guiStrings, 'stairLandingDrop').name('Landing Drop').onFinishChange(commitChanges);
+    fStairs.add(guiStrings, 'stairLandingWidth').name('Landing Width').onFinishChange(commitChanges);
+    fStairs.add(guiStrings, 'stairLandingLen').name('Landing Length').onFinishChange(commitChanges);
+
+    // 9. Construction
+    const fVis = gui.addFolder('9. Construction');
+    fVis.add({ play: runAnimation }, 'play').name('▶ Play Animation');
+    fVis.add(vis, 'ground').name('Natural Ground').onChange(build).listen();
+    fVis.add(vis, 'gravel').name('Gravel').onChange(build).listen();
+    fVis.add(vis, 'floor').name('Cradle Floor').onChange(build).listen();
+    fVis.add(vis, 'keys').name('Keyways').onChange(build).listen();
+    fVis.add(vis, 'waterstop').name('Waterstop').onChange(build).listen();
+    fVis.add(vis, 'walls').name('Cradle Walls').onChange(build).listen();
+    fVis.add(vis, 'hlm').name('HLM 5000').onChange(build).listen();
+    fVis.add(vis, 'foam').name('Foam').onChange(build).listen();
+    fVis.add(vis, 'mikFloor').name('Mikvah Floor').onChange(build).listen();
+    fVis.add(vis, 'mikWalls').name('Mikvah Walls').onChange(build).listen();
+    fVis.add(vis, 'floorAboveBor').name('Floor Above Bor').onChange(build).listen();
+    fVis.add(vis, 'borCover').name('Bor Cover (Granite)').onChange(build).listen();
+fVis.add(vis, 'stairs').name('Stairs').onChange(build).listen();
+fVis.add(vis, 'tiles').name('Tiles (Blue Mosaic)').onChange(build).listen();
+    fVis.add(vis, 'waterBor').name('Water (Bor)').onChange(build).listen(); // NEW
+    fVis.add(vis, 'waterMikvah').name('Water (Mikvah 51")').onChange(build).listen(); // NEW
+    fVis.add(vis, 'backfill').name('Backfill (Buried)').onChange(build).listen();
+    fVis.add(vis, 'dims').name('Show Dimensions').onChange(() => { updateDimVisibility(); build(); }).listen();
+
+    // 10. Section Cuts
+    const fCut = gui.addFolder('10. Section Cuts');
+    const updateCuts = () => {
+        clipPlanes[0].constant = clipParams.x; clipPlanes[1].constant = clipParams.nx;
+        clipPlanes[2].constant = clipParams.z; clipPlanes[3].constant = clipParams.nz;
+        updateDimVisibility();
+    };
+    const clipParams = { x: 2000, nx: 2000, z: 2000, nz: 2000 };
+    fCut.add(clipParams, 'x', -200, 2000).name('Right').onChange(updateCuts);
+    fCut.add(clipParams, 'nx', -200, 2000).name('Left').onChange(updateCuts);
+    fCut.add(clipParams, 'z', -200, 2000).name('Front').onChange(updateCuts);
+    fCut.add(clipParams, 'nz', -200, 2000).name('Back').onChange(updateCuts);
+
+    // --- LOOP ---
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        labels.forEach(l => l.quaternion.copy(camera.quaternion));
+        renderer.render(scene, camera);
+    }
+    
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hidden Heating Coils Under the Steps — Mikvah Construction Guides</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+    --sidebar-w: 380px;
+    --accent: #1d6fb8;
+    --accent-dark: #14507f;
+    --ink: #1a2330;
+    --muted: #5b6472;
+    --line: #e3e7ec;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0; overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+    background: #eef1f4;
+}
+
+#app { display: flex; height: 100vh; width: 100vw; }
+
+/* ---------- SIDEBAR ---------- */
+#sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    height: 100vh;
+    background: #ffffff;
+    border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    z-index: 20;
+}
+#sidebar header {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--line);
+}
+#sidebar header a.back {
+    font-size: 0.78em; font-weight: 600; color: var(--accent);
+    text-decoration: none; letter-spacing: 0.02em;
+}
+#sidebar header a.back:hover { text-decoration: underline; }
+#sidebar header h1 {
+    margin: 6px 0 2px; font-size: 1.15em; font-weight: 700; letter-spacing: -0.01em;
+}
+#sidebar header .tagline { font-size: 0.8em; color: var(--muted); }
+
+#stepList {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    display: flex; flex-wrap: wrap; gap: 6px;
+}
+.step-chip {
+    border: 1px solid var(--line);
+    background: #f7f9fb;
+    color: var(--muted);
+    border-radius: 20px;
+    font-size: 0.72em; font-weight: 600;
+    padding: 5px 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+.step-chip:hover { border-color: var(--accent); color: var(--accent); }
+.step-chip.active {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.step-chip.done { color: var(--accent-dark); background: #eaf2fa; border-color: #cfe0ef; }
+
+#stepContent {
+    flex: 1; overflow-y: auto;
+    padding: 20px 22px;
+}
+#stepContent .step-num {
+    font-size: 0.72em; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.08em;
+}
+#stepContent h2 { margin: 4px 0 12px; font-size: 1.3em; letter-spacing: -0.01em; }
+#stepContent p { font-size: 0.88em; line-height: 1.65; color: #333c49; margin: 0 0 12px; }
+#stepContent ul { font-size: 0.88em; line-height: 1.6; color: #333c49; padding-left: 20px; margin: 0 0 12px; }
+#stepContent li { margin-bottom: 5px; }
+#stepContent .callout {
+    background: #f2f7fc; border-left: 3px solid var(--accent);
+    padding: 10px 14px; border-radius: 0 8px 8px 0;
+    font-size: 0.85em; line-height: 1.55; color: #2a3644;
+    margin: 0 0 12px;
+}
+#stepContent .callout.warn { background: #fdf3f2; border-left-color: #c0392b; }
+#stepContent .dim { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+
+#nav {
+    display: flex; gap: 10px;
+    padding: 14px 22px;
+    border-top: 1px solid var(--line);
+    background: #fbfcfd;
+}
+#nav button {
+    flex: 1; padding: 11px 0;
+    font-family: inherit; font-size: 0.88em; font-weight: 600;
+    border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff; color: var(--ink);
+    transition: all 0.15s;
+}
+#nav button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+#nav button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+#nav button.primary:hover:not(:disabled) { background: var(--accent-dark); }
+#nav button:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- VIEWPORT ---------- */
+#viewport { flex: 1; position: relative; height: 100vh; }
+#canvasHost { position: absolute; inset: 0; }
+
+#viewOptions {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 8px 28px rgba(15,30,50,0.10);
+    font-size: 0.8em;
+    min-width: 215px;
+    z-index: 10;
+}
+#viewOptions .vo-title {
+    font-weight: 700; font-size: 0.92em; margin-bottom: 8px; color: var(--ink);
+}
+#viewOptions label.row {
+    display: flex; align-items: center; gap: 7px;
+    margin: 6px 0; cursor: pointer; color: #38424f; font-weight: 500;
+}
+#viewOptions .group { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
+#viewOptions .group-label {
+    font-size: 0.82em; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--muted); margin-bottom: 5px;
+}
+#viewOptions input[type=range] { width: 100%; accent-color: var(--accent); }
+#viewOptions input[type=checkbox], #viewOptions input[type=radio] { accent-color: var(--accent); }
+.slider-label { display:flex; justify-content: space-between; font-size: 0.82em; color: var(--muted); margin-top: 6px; }
+
+#legend {
+    position: absolute; bottom: 16px; right: 16px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    padding: 12px 16px; border-radius: 12px;
+    font-size: 0.74em; color: #38424f;
+    pointer-events: none;
+    box-shadow: 0 8px 28px rgba(15,30,50,0.08);
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 5px 16px;
+    z-index: 10;
+}
+#legend strong { grid-column: 1 / -1; margin-bottom: 2px; color: var(--ink); font-size: 1.02em; }
+.legend-item { display: flex; align-items: center; font-weight: 500; }
+.swatch { width: 12px; height: 12px; margin-right: 7px; border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.15); flex-shrink: 0; }
+
+#hint {
+    position: absolute; bottom: 16px; left: 16px;
+    background: rgba(26,35,48,0.82); color: #fff;
+    font-size: 0.72em; font-weight: 500;
+    padding: 7px 13px; border-radius: 8px;
+    pointer-events: none; z-index: 10;
+}
+
+#loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #eef1f4; z-index: 40;
+    font-weight: 600; color: var(--muted);
+}
+
+/* ---------- MOBILE ---------- */
+@media (max-width: 900px) {
+    #app { flex-direction: column; }
+    #sidebar {
+        width: 100vw; min-width: 0;
+        height: 46vh; order: 2;
+        border-right: none; border-top: 1px solid var(--line);
+    }
+    #viewport { height: 54vh; }
+    #legend { display: none; }
+    #viewOptions { min-width: 0; padding: 9px 12px; max-width: 46vw; }
+}
+</style>
+<script type="importmap">
+{
+    "imports": {
+        "three": "../vendor/three/three.module.js",
+        "three/addons/": "../vendor/three/addons/"
+    }
+}
+</script>
+</head>
+<body>
+<div id="app">
+    <aside id="sidebar">
+        <header>
+            <a class="back" href="../index.html">&larr; All Guides</a>
+            <h1>Hidden Heating Coils Under the Steps</h1>
+            <div class="tagline">How the radiator hides under the stairs while its pipes exit the wall <em>above</em> the water line.</div>
+        </header>
+        <div id="stepList"></div>
+        <div id="stepContent"></div>
+        <div id="nav">
+            <button id="btnPrev">&larr; Previous</button>
+            <button id="btnNext" class="primary">Next &rarr;</button>
+        </div>
+    </aside>
+
+    <main id="viewport">
+        <div id="canvasHost"></div>
+
+        <div id="viewOptions">
+            <div class="vo-title">View Options</div>
+            <div class="group" style="border-top:none; margin-top:0; padding-top:0;">
+                <div class="group-label">Coil Wall</div>
+                <label class="row"><input type="radio" name="coilWall" value="N" checked> North wall — straight serpentine</label>
+                <label class="row"><input type="radio" name="coilWall" value="E"> East wall — follows the steps</label>
+            </div>
+            <div class="group">
+                <label class="row"><input type="checkbox" id="chkHideStairs"> Hide stairs (peek underneath)</label>
+                <label class="row"><input type="checkbox" id="chkLabels" checked> Show labels</label>
+            </div>
+            <div class="group">
+                <div class="group-label">Section Cuts</div>
+                <div class="slider-label"><span>East&ndash;West</span><span id="cutXVal">off</span></div>
+                <input type="range" id="cutX" min="-70" max="200" value="200" step="1">
+                <div class="slider-label"><span>North&ndash;South</span><span id="cutZVal">off</span></div>
+                <input type="range" id="cutZ" min="-70" max="200" value="200" step="1">
+            </div>
+        </div>
+
+        <div id="legend">
+            <strong>Materials</strong>
+            <div class="legend-item"><div class="swatch" style="background:#9e9e9e"></div>Cradle Concrete</div>
+            <div class="legend-item"><div class="swatch" style="background:#cfcfcf"></div>Mikvah Concrete</div>
+            <div class="legend-item"><div class="swatch" style="background:#c89b5f"></div>Formwork</div>
+            <div class="legend-item"><div class="swatch" style="background:#ff8fa3"></div>Styrofoam Block-out</div>
+            <div class="legend-item"><div class="swatch" style="background:#b87333"></div>Heating Coil / Pipes</div>
+            <div class="legend-item"><div class="swatch" style="background:#505050"></div>Bor Cover (Granite)</div>
+            <div class="legend-item"><div class="swatch" style="background:linear-gradient(45deg,#4da6ff,#0059b3)"></div>Mosaic Tile</div>
+            <div class="legend-item"><div class="swatch" style="background:rgba(0,150,255,0.6)"></div>Water</div>
+        </div>
+
+        <div id="hint">Drag to orbit &middot; scroll to zoom &middot; right-drag to pan</div>
+        <div id="loading">Loading 3D engine&hellip;</div>
+    </main>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* =========================================================================
+   DIMENSIONS — all inches, taken from the master parametric model defaults.
+   Y = 0 is the top of the cradle floor slab (bottom of the monolithic pour).
+   North wall = +Z (you enter here, steps descend to the south).
+   East wall  = +X (the stairs run along it).
+   ========================================================================= */
+const D = {
+    intW: 96, intL: 96, intH: 108,       // mikvah interior 8' x 8', walls 9' tall
+    wall: 12,                            // mikvah wall thickness
+    floorH: 48,                          // top of the thick (5'-deep) floor half
+    // Bor (deep half): the pit under the east side of the floor
+    borMinX: 2, borMaxX: 42,             // bor width 40"
+    borMinZ: -42, borMaxZ: 42,           // bor length 84" (6" ledge to N/S walls)
+    ledgeLevel: 42,                      // "the wall goes in a little" — ledge elevation
+    borBottom: 12,                       // 8'-0" from the top rim down to here
+    ledgeMinX: -4,                       // west edge of the ledge ring / slab
+    // Hole in floor-above-bor + granite cover
+    cutMinX: 12, cutMaxX: 44, cutMinZ: 16, cutMaxZ: 44,   // rabbet cut
+    holeMinX: 14, holeMaxX: 42, holeMinZ: 18, holeMaxZ: 42, // clear opening
+    holeLedgeDrop: 1,
+    coverHole: 4, coverHoleOffset: 4,    // two 4" lifting holes in the granite
+    // Stairs (exactly the default view of the master model)
+    stairCount: 7, stairW: 36, tread: 10, firstDrop: 7.5, rise: 7.5,
+    lastStepW: 36, lastStepD: 36,
+    landingW: 60, landingD: 36, landingDrop: 4,
+    // Water
+    waterDepth: 51,                      // above the 48" floor -> surface at Y=99
+    // Cradle
+    cradleWall: 12, cradleH: 102, cradleFloorT: 15, floorExt: 12, gravel: 6, foam: 0.5,
+    // Heating system
+    penY: 103.5                          // pipe penetration elevation (55.5" above floor)
+};
+D.waterY = D.floorH + D.waterDepth;      // 99
+D.inR = D.intW / 2;                      // 48 — interior half-width
+
+// Stair profile derived values
+D.stairTopY   = D.intH - D.firstDrop;                                   // 100.5
+D.slopeTopY   = D.intH - D.firstDrop - D.rise;                          // 93 (underside at north wall)
+D.slopeBotZ   = D.inR - (D.stairCount - 1) * D.tread;                   // -12
+D.slopeBotY   = D.intH - D.firstDrop - (D.stairCount - 1) * D.rise - D.rise; // 48
+D.lastTopY    = D.intH - (D.firstDrop + (D.stairCount - 1) * D.rise);   // 55.5
+const rampY = z => {
+    const t = (z - D.inR) / (D.slopeBotZ - D.inR);
+    return D.slopeTopY + t * (D.slopeBotY - D.slopeTopY);
+};
+
+/* ---------------- indent (styrofoam block-out) geometry ----------------- */
+function indentSpec(wallSide) {
+    if (wallSide === 'N') {
+        // recess in the north wall: 9" wide, 2.5" deep, from 50" up to 106"
+        return { axis: 'Z', min1: 24.5, max1: 33.5, yMin: 50, yMax: 106,
+                 face: D.inR, depth: 2.5, riserA: 27.5, riserB: 30.5 };
+    }
+    // east wall: same recess near the north corner
+    return { axis: 'X', min1: 37.5, max1: 46.5, yMin: 50, yMax: 106,
+             face: D.inR, depth: 2.5, riserA: 40.5, riserB: 43.5 };
+}
+
+/* =========================================================================
+   SCENE SETUP
+   ========================================================================= */
+const host = document.getElementById('canvasHost');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xeef1f4);
+const camera = new THREE.PerspectiveCamera(45, 1, 1, 10000);
+camera.position.set(300, 320, 300);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.localClippingEnabled = true;
+host.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+dirLight.position.set(150, 400, 200);
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0xeef2ff, 0.5);
+fillLight.position.set(-150, 200, -200);
+scene.add(fillLight);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0, 40, 0);
+
+function resize() {
+    const w = host.clientWidth, h = host.clientHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+}
+window.addEventListener('resize', resize);
+
+/* ---------------- clipping (section cuts) ---------------- */
+const clipX = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 2000); // keeps x <= const
+const clipZ = new THREE.Plane(new THREE.Vector3(0, 0, -1), 2000); // keeps z <= const
+const clipPlanes = [clipX, clipZ];
+
+/* ---------------- materials ---------------- */
+function mosaicTexture() {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#dcdcdc'; ctx.fillRect(0, 0, 512, 512);
+    const palette = ['#4da6ff', '#0080ff', '#0059b3', '#3399ff', '#66b3ff'];
+    const n = 8, pad = 4, s = 512 / n;
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        ctx.fillStyle = palette[Math.floor(Math.random() * palette.length)];
+        ctx.fillRect(x * s + pad / 2, y * s + pad / 2, s - pad, s - pad);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(x * s + pad / 2, y * s + pad / 2, s - pad, (s - pad) / 2);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+}
+const std = (color, roughness, extra = {}) => new THREE.MeshStandardMaterial({
+    color, roughness, side: THREE.DoubleSide, clippingPlanes: clipPlanes, ...extra
+});
+const M = {
+    ground: std(0x5c4033, 1),
+    gravel: std(0x666655, 1),
+    cradle: std(0x9e9e9e, 0.6),
+    concrete: std(0xcfcfcf, 0.5),
+    concreteGhost: std(0xcfcfcf, 0.5, { transparent: true, opacity: 0.22, depthWrite: false }),
+    recessBack: std(0xb5b5b5, 0.7),
+    hlm: std(0x222222, 0.2),
+    foam: std(0xffcccc, 0.9),
+    waterstop: std(0x0000ff, 0.4),
+    plywood: std(0xc89b5f, 0.85),
+    lumber: std(0xa87c48, 0.9),
+    styro: std(0xff8fa3, 0.95),
+    granite: std(0x505050, 0.4),
+    slab: std(0xb0b0b0, 0.5),
+    copper: std(0xb87333, 0.35, { metalness: 0.6 }),
+    heater: std(0x37474f, 0.5),
+    tiles: new THREE.MeshStandardMaterial({
+        map: mosaicTexture(), roughness: 0.2, metalness: 0.1,
+        side: THREE.DoubleSide, clippingPlanes: clipPlanes,
+        polygonOffset: true, polygonOffsetFactor: -1
+    }),
+    water: new THREE.MeshStandardMaterial({
+        color: 0x00aaff, transparent: true, opacity: 0.5, roughness: 0.1,
+        metalness: 0.1, side: THREE.DoubleSide, clippingPlanes: clipPlanes
+    }),
+    waterLine: new THREE.LineDashedMaterial({ color: 0x0055cc, dashSize: 4, gapSize: 3 })
+};
+
+/* ---------------- build helpers ---------------- */
+const world = new THREE.Group();
+scene.add(world);
+const labelGroup = new THREE.Group();
+scene.add(labelGroup);
+
+function addBox(g, minX, maxX, yMin, yMax, minZ, maxZ, mat) {
+    const w = maxX - minX, h = yMax - yMin, l = maxZ - minZ;
+    if (w <= 0.001 || h <= 0.001 || l <= 0.001) return null;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, l), mat);
+    m.position.set(minX + w / 2, yMin + h / 2, minZ + l / 2);
+    g.add(m);
+    return m;
+}
+
+function addPipe(g, pts, r, mat) {
+    for (let i = 0; i < pts.length - 1; i++) {
+        const a = new THREE.Vector3(...pts[i]), b = new THREE.Vector3(...pts[i + 1]);
+        const dir = b.clone().sub(a);
+        const len = dir.length();
+        if (len < 0.01) continue;
+        const cyl = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 14), mat);
+        cyl.position.copy(a).addScaledVector(dir, 0.5);
+        cyl.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+        g.add(cyl);
+    }
+    for (const p of pts) {
+        const s = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 10), mat);
+        s.position.set(...p);
+        g.add(s);
+    }
+}
+
+function scaleUVs(geometry, dimX, dimY, scale = 12) {
+    const uvs = geometry.attributes.uv;
+    if (!uvs) return;
+    for (let i = 0; i < uvs.count; i++) {
+        uvs.setXY(i, uvs.getX(i) * (dimX / scale), uvs.getY(i) * (dimY / scale));
+    }
+    uvs.needsUpdate = true;
+}
+
+function makeLabel(text, pos, accent = false) {
+    const pad = 14, fs = 26;
+    const c = document.createElement('canvas');
+    const ctx = c.getContext('2d');
+    ctx.font = `600 ${fs}px Inter, sans-serif`;
+    const tw = ctx.measureText(text).width;
+    c.width = Math.ceil(tw + pad * 2);
+    c.height = fs + pad * 1.4;
+    const r = 12;
+    ctx.beginPath();
+    ctx.roundRect(1, 1, c.width - 2, c.height - 2, r);
+    ctx.fillStyle = accent ? 'rgba(29,111,184,0.95)' : 'rgba(255,255,255,0.94)';
+    ctx.fill();
+    ctx.strokeStyle = accent ? 'rgba(20,80,140,1)' : 'rgba(160,170,185,0.9)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.font = `600 ${fs}px Inter, sans-serif`;
+    ctx.fillStyle = accent ? '#ffffff' : '#1a2330';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, pad, c.height / 2 + 1);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+    const k = 0.075;
+    sp.scale.set(c.width * k, c.height * k, 1);
+    sp.position.set(...pos);
+    sp.renderOrder = 999;
+    labelGroup.add(sp);
+}
+
+/* =========================================================================
+   BUILD SECTIONS
+   ========================================================================= */
+function buildSite() {
+    const g = new THREE.Group();
+    const realW = D.intW + 2 * D.wall + 2 * D.foam;           // 121
+    const outer = realW + 2 * D.cradleWall;                    // 145
+    const floorW = outer + 2 * D.floorExt;                     // 169
+
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), M.ground);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -D.cradleFloorT - D.gravel - 1;
+    g.add(ground);
+
+    addBox(g, -floorW / 2 - 10, floorW / 2 + 10, -D.cradleFloorT - D.gravel, -D.cradleFloorT,
+        -floorW / 2 - 10, floorW / 2 + 10, M.gravel);
+    addBox(g, -floorW / 2, floorW / 2, -D.cradleFloorT, 0, -floorW / 2, floorW / 2, M.cradle);
+
+    // cradle walls
+    const iw = realW / 2;                                      // 60.5 (inner face of cradle)
+    const ow = outer / 2;
+    addBox(g, -ow, ow, 0, D.cradleH, iw, ow, M.cradle);
+    addBox(g, -ow, ow, 0, D.cradleH, -ow, -iw, M.cradle);
+    addBox(g, -ow, -iw, 0, D.cradleH, -iw, iw, M.cradle);
+    addBox(g, iw, ow, 0, D.cradleH, -iw, iw, M.cradle);
+
+    // HLM 5000 waterproofing (thin dark coat on cradle interior)
+    const t = 0.25;
+    addBox(g, -iw, iw, 0, D.cradleH, iw - t, iw, M.hlm);
+    addBox(g, -iw, iw, 0, D.cradleH, -iw, -iw + t, M.hlm);
+    addBox(g, -iw, -iw + t, 0, D.cradleH, -iw, iw, M.hlm);
+    addBox(g, iw - t, iw, 0, D.cradleH, -iw, iw, M.hlm);
+
+    // waterstop ribbon at the base
+    const wsIn = (D.intW + 2 * D.wall) / 2 + D.cradleWall / 2;
+    addBox(g, -wsIn, wsIn, 0, 4, wsIn - 0.25, wsIn + 0.25, M.waterstop);
+    addBox(g, -wsIn, wsIn, 0, 4, -wsIn - 0.25, -wsIn + 0.25, M.waterstop);
+    addBox(g, -wsIn - 0.25, -wsIn + 0.25, 0, 4, -wsIn, wsIn, M.waterstop);
+    addBox(g, wsIn - 0.25, wsIn + 0.25, 0, 4, -wsIn, wsIn, M.waterstop);
+    return g;
+}
+
+function buildFoam() {
+    const g = new THREE.Group();
+    const sIn = (D.intW + 2 * D.wall) / 2;                     // 60 (outside of mikvah wall)
+    const sOut = sIn + D.foam;
+    addBox(g, -sOut, sOut, 0, D.cradleH, sIn, sOut, M.foam);
+    addBox(g, -sOut, sOut, 0, D.cradleH, -sOut, -sIn, M.foam);
+    addBox(g, -sOut, -sIn, 0, D.cradleH, -sIn, sIn, M.foam);
+    addBox(g, sIn, sOut, 0, D.cradleH, -sIn, sIn, M.foam);
+    return g;
+}
+
+function buildForms(wallSide) {
+    const g = new THREE.Group();
+    const r = D.inR, t = 1.5, top = D.intH + 2;
+    // interior wall forms (from floor level up — floor + walls pour as one)
+    addBox(g, -r, r, D.floorH - 2, top, r - t, r, M.plywood);          // north
+    addBox(g, -r, r, D.floorH - 2, top, -r, -r + t, M.plywood);        // south
+    addBox(g, -r, -r + t, D.floorH - 2, top, -r + t, r - t, M.plywood);// west
+    addBox(g, r - t, r, D.floorH - 2, top, -r + t, r - t, M.plywood);  // east
+    // walers (horizontal stiffeners) for a built look
+    for (const y of [58, 76, 94]) {
+        addBox(g, -r + t, r - t, y, y + 3, r - t - 3, r - t, M.lumber);
+        addBox(g, -r + t, r - t, y, y + 3, -r + t, -r + t + 3, M.lumber);
+        addBox(g, -r + t, -r + t + 3, y, y + 3, -r + t + 3, r - t - 3, M.lumber);
+        addBox(g, r - t - 3, r - t, y, y + 3, -r + t + 3, r - t - 3, M.lumber);
+    }
+    // bor void form (a suspended plywood box shapes the pit + ledge)
+    addBox(g, D.borMinX, D.borMaxX, D.borBottom, D.ledgeLevel, D.borMinZ, D.borMaxZ, M.plywood);
+    addBox(g, D.ledgeMinX, r, D.ledgeLevel, D.floorH - 2, -r, r, M.plywood);
+    return g;
+}
+
+function buildStyro(wallSide) {
+    const g = new THREE.Group();
+    const s = indentSpec(wallSide);
+    if (wallSide === 'N') {
+        addBox(g, s.min1, s.max1, s.yMin, s.yMax, s.face - 0.15, s.face + s.depth, M.styro);
+    } else {
+        addBox(g, s.face - 0.15, s.face + s.depth, s.yMin, s.yMax, s.min1, s.max1, M.styro);
+    }
+    return g;
+}
+
+// Monolithic pour: 4 walls + floor (thick half, ledge ring, bor base) in one shot
+function buildShell(wallSide, withRecess) {
+    const g = new THREE.Group();
+    const r = D.inR, W = D.wall, H = D.intH;
+    const oR = r + W;
+    const s = indentSpec(wallSide);
+
+    // --- north wall (recess if coil wall is N) ---
+    if (withRecess && wallSide === 'N') {
+        addBox(g, -oR, s.min1, 0, H, r, oR, M.concrete);
+        addBox(g, s.max1, oR, 0, H, r, oR, M.concrete);
+        addBox(g, s.min1, s.max1, 0, s.yMin, r, oR, M.concrete);
+        addBox(g, s.min1, s.max1, s.yMax, H, r, oR, M.concrete);
+        addBox(g, s.min1, s.max1, s.yMin, s.yMax, r + s.depth, oR, M.recessBack);
+    } else {
+        addBox(g, -oR, oR, 0, H, r, oR, M.concrete);
+    }
+    // --- south wall ---
+    addBox(g, -oR, oR, 0, H, -oR, -r, M.concrete);
+    // --- west wall ---
+    addBox(g, -oR, -r, 0, H, -r, r, M.concrete);
+    // --- east wall (recess if coil wall is E) ---
+    if (withRecess && wallSide === 'E') {
+        addBox(g, r, oR, 0, H, -r, s.min1, M.concrete);
+        addBox(g, r, oR, 0, H, s.max1, r, M.concrete);
+        addBox(g, r, oR, 0, s.yMin, s.min1, s.max1, M.concrete);
+        addBox(g, r, oR, s.yMax, H, s.min1, s.max1, M.concrete);
+        addBox(g, r + s.depth, oR, s.yMin, s.yMax, s.min1, s.max1, M.recessBack);
+    } else {
+        addBox(g, r, oR, 0, H, -r, r, M.concrete);
+    }
+
+    // --- floor: the thick 5'-deep half (a massive block of concrete) ---
+    addBox(g, -r, D.ledgeMinX, 0, D.floorH, -r, r, M.concrete);
+    // --- ledge ring around the bor ("the wall goes in a little bit") ---
+    addBox(g, D.borMaxX, r, 0, D.ledgeLevel, -r, r, M.concrete);            // east strip
+    addBox(g, D.ledgeMinX, D.borMaxX, 0, D.ledgeLevel, D.borMaxZ, r, M.concrete);   // north strip
+    addBox(g, D.ledgeMinX, D.borMaxX, 0, D.ledgeLevel, -r, D.borMinZ, M.concrete);  // south strip
+    addBox(g, D.ledgeMinX, D.borMinX, 0, D.ledgeLevel, D.borMinZ, D.borMaxZ, M.concrete); // west strip
+    // --- bor base slab ---
+    addBox(g, D.borMinX, D.borMaxX, 0, D.borBottom, D.borMinZ, D.borMaxZ, M.concrete);
+    return g;
+}
+
+function buildSlabAndCover(showCover) {
+    const g = new THREE.Group();
+    const r = D.inR;
+    const y0 = D.ledgeLevel, y1 = D.floorH;
+    // floor above the bor, leaving the rabbeted access hole
+    addBox(g, D.ledgeMinX, r, y0, y1, D.cutMaxZ, r, M.slab);
+    addBox(g, D.ledgeMinX, r, y0, y1, -r, D.cutMinZ, M.slab);
+    addBox(g, D.cutMaxX, r, y0, y1, D.cutMinZ, D.cutMaxZ, M.slab);
+    addBox(g, D.ledgeMinX, D.cutMinX, y0, y1, D.cutMinZ, D.cutMaxZ, M.slab);
+    // rabbet ledge (1" down) that carries the granite cover
+    const lt = y1 - D.holeLedgeDrop;
+    addBox(g, D.cutMinX, D.cutMaxX, y0, lt, D.holeMaxZ, D.cutMaxZ, M.slab);
+    addBox(g, D.cutMinX, D.cutMaxX, y0, lt, D.cutMinZ, D.holeMinZ, M.slab);
+    addBox(g, D.holeMaxX, D.cutMaxX, y0, lt, D.holeMinZ, D.holeMaxZ, M.slab);
+    addBox(g, D.cutMinX, D.holeMinX, y0, lt, D.holeMinZ, D.holeMaxZ, M.slab);
+
+    if (showCover) {
+        // granite cover with two 4" holes
+        const cb = y1 - D.holeLedgeDrop, ct = y1;
+        const midZ = (D.cutMinZ + D.cutMaxZ) / 2;
+        const hz0 = midZ - D.coverHole / 2, hz1 = midZ + D.coverHole / 2;
+        const h1x1 = D.cutMaxX - D.coverHoleOffset, h1x0 = h1x1 - D.coverHole;
+        const h2x0 = D.cutMinX + D.coverHoleOffset, h2x1 = h2x0 + D.coverHole;
+        addBox(g, D.cutMinX, D.cutMaxX, cb, ct, D.cutMinZ, hz0, M.granite);
+        addBox(g, D.cutMinX, D.cutMaxX, cb, ct, hz1, D.cutMaxZ, M.granite);
+        addBox(g, D.cutMinX, h2x0, cb, ct, hz0, hz1, M.granite);
+        addBox(g, h2x1, h1x0, cb, ct, hz0, hz1, M.granite);
+        addBox(g, h1x1, D.cutMaxX, cb, ct, hz0, hz1, M.granite);
+    }
+    return g;
+}
+
+function stairShape() {
+    const shape = new THREE.Shape();
+    let z = D.inR, y = D.intH - D.firstDrop;
+    shape.moveTo(z, y);
+    for (let i = 0; i < D.stairCount - 1; i++) {
+        if (i > 0) { y -= D.rise; shape.lineTo(z, y); }
+        z -= D.tread;
+        shape.lineTo(z, y);
+    }
+    shape.lineTo(z, rampY(z));
+    shape.lineTo(D.inR, D.slopeTopY);
+    shape.lineTo(D.inR, D.intH - D.firstDrop);
+    return shape;
+}
+
+function buildStairs(withTiles, ghost) {
+    const g = new THREE.Group();
+    const r = D.inR;
+    const mat = ghost ? M.concreteGhost : M.concrete;
+    // upper flight — sloped slab with steps on top (extruded along X)
+    const shape = stairShape();
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: D.stairW, bevelEnabled: false, steps: 1 });
+    const flight = new THREE.Mesh(geo, mat);
+    flight.rotation.y = -Math.PI / 2;
+    flight.position.set(r, 0, 0);
+    g.add(flight);
+    // bottom step
+    addBox(g, r - D.lastStepW, r, D.lastTopY - D.rise, D.lastTopY,
+        D.slopeBotZ - D.lastStepD, D.slopeBotZ, mat);
+    // landing
+    const landTop = D.lastTopY - D.landingDrop;
+    addBox(g, r - D.lastStepW - D.landingW, r - D.lastStepW, landTop - D.landingDrop, landTop,
+        D.slopeBotZ - D.lastStepD, D.slopeBotZ - D.lastStepD + D.landingD, mat);
+
+    if (withTiles) {
+        // side face
+        const sideGeo = new THREE.ShapeGeometry(shape);
+        scaleUVs(sideGeo, D.intL, D.intH);
+        const side = new THREE.Mesh(sideGeo, M.tiles);
+        side.rotation.y = -Math.PI / 2;
+        side.position.set(r - D.stairW - 0.1, 0, 0);
+        g.add(side);
+        // top skin
+        const skinGeo = new THREE.ExtrudeGeometry(shape, { depth: D.stairW + 0.2, bevelEnabled: false, steps: 1 });
+        const skin = new THREE.Mesh(skinGeo, M.tiles);
+        skin.rotation.y = -Math.PI / 2;
+        skin.position.set(r + 0.1, 0.1, 0);
+        g.add(skin);
+        // bottom step + landing skins
+        const bs = new THREE.BoxGeometry(D.lastStepW + 0.2, D.rise + 0.2, D.lastStepD + 0.2);
+        scaleUVs(bs, D.lastStepW, D.lastStepD);
+        const bsm = new THREE.Mesh(bs, M.tiles);
+        bsm.position.set(r - D.lastStepW / 2 + 0.05, D.lastTopY - D.rise / 2,
+            D.slopeBotZ - D.lastStepD / 2);
+        g.add(bsm);
+        const lb = new THREE.BoxGeometry(D.landingW + 0.2, D.landingDrop + 0.2, D.landingD + 0.2);
+        scaleUVs(lb, D.landingW, D.landingD);
+        const lbm = new THREE.Mesh(lb, M.tiles);
+        lbm.position.set(r - D.lastStepW - D.landingW / 2, landTop - D.landingDrop / 2,
+            D.slopeBotZ - D.lastStepD + D.landingD / 2);
+        g.add(lbm);
+    }
+    return g;
+}
+
+/* --------- heating coil, risers in the indent, wall penetration --------- */
+function buildCoil(wallSide) {
+    const g = new THREE.Group();
+    const s = indentSpec(wallSide);
+    const R = 1.0;                 // pipe radius
+    const rec = D.inR + 1.2;       // centerline of pipes inside the recess
+    const face = D.inR - 1.4;      // coil plane just off the wall face
+    const out = D.inR + D.wall + 3;
+
+    let pts;
+    if (wallSide === 'N') {
+        // serpentine on the north wall under the stair slab (x left-right, y up)
+        const xE = 44, xW = 15;
+        pts = [
+            [s.riserB, D.penY, rec], [s.riserB, 54, rec], [s.riserB, 54, face],
+            [xW, 54, face], [xW, 60, face], [xE, 60, face], [xE, 66, face],
+            [xW, 66, face], [xW, 72, face], [xE, 72, face], [xE, 78, face],
+            [xW, 78, face], [xW, 84, face], [xE, 84, face], [xE, 90, face],
+            [s.riserA, 90, face], [s.riserA, 90, rec], [s.riserA, D.penY, rec]
+        ];
+        addPipe(g, pts, R, M.copper);
+        addPipe(g, [[s.riserA, D.penY, rec], [s.riserA, D.penY, out]], R, M.copper);
+        addPipe(g, [[s.riserB, D.penY, rec], [s.riserB, D.penY, out]], R, M.copper);
+        addBox(g, s.riserA - 5, s.riserB + 5, D.penY - 4, D.penY + 4, out, out + 7, M.heater);
+    } else {
+        // east wall — the coil steps down with the staircase soffit
+        pts = [
+            [rec, D.penY, s.riserA], [rec, 54, s.riserA], [face, 54, s.riserA],
+            [face, 54, 10], [face, 60, 10], [face, 60, 44], [face, 66, 44],
+            [face, 66, 26], [face, 72, 26], [face, 72, s.riserB],
+            [face, 78, s.riserB], [rec, 78, s.riserB], [rec, D.penY, s.riserB]
+        ];
+        addPipe(g, pts, R, M.copper);
+        addPipe(g, [[rec, D.penY, s.riserA], [out, D.penY, s.riserA]], R, M.copper);
+        addPipe(g, [[rec, D.penY, s.riserB], [out, D.penY, s.riserB]], R, M.copper);
+        addBox(g, out, out + 7, D.penY - 4, D.penY + 4, s.riserA - 5, s.riserB + 5, M.heater);
+    }
+    return g;
+}
+
+function buildWaterLine() {
+    const g = new THREE.Group();
+    const r = D.inR - 0.4, y = D.waterY;
+    const pts = [
+        new THREE.Vector3(-r, y, -r), new THREE.Vector3(r, y, -r),
+        new THREE.Vector3(r, y, r), new THREE.Vector3(-r, y, r),
+        new THREE.Vector3(-r, y, -r)
+    ];
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const line = new THREE.Line(geo, M.waterLine);
+    line.computeLineDistances();
+    g.add(line);
+    return g;
+}
+
+function buildTiles(wallSide) {
+    const g = new THREE.Group();
+    const r = D.inR, off = 0.06;
+    const addPlane = (w, h, pos, rot) => {
+        const geo = new THREE.PlaneGeometry(w, h);
+        scaleUVs(geo, w, h);
+        const m = new THREE.Mesh(geo, M.tiles);
+        m.rotation.set(rot[0], rot[1], rot[2]);
+        m.position.set(...pos);
+        g.add(m);
+    };
+    // floor — thick half + slab above bor (around the hole)
+    const floorY = D.floorH + off;
+    const fp = (x0, x1, z0, z1) => {
+        const w = x1 - x0, l = z1 - z0;
+        if (w <= 0.01 || l <= 0.01) return;
+        const geo = new THREE.PlaneGeometry(w, l);
+        scaleUVs(geo, w, l);
+        const m = new THREE.Mesh(geo, M.tiles);
+        m.rotation.x = -Math.PI / 2;
+        m.position.set(x0 + w / 2, floorY, z0 + l / 2);
+        g.add(m);
+    };
+    fp(-r, D.ledgeMinX, -r, r);                      // thick-floor half
+    fp(D.ledgeMinX, r, D.cutMaxZ, r);                // slab, around the cover
+    fp(D.ledgeMinX, r, -r, D.cutMinZ);
+    fp(D.cutMaxX, r, D.cutMinZ, D.cutMaxZ);
+    fp(D.ledgeMinX, D.cutMinX, D.cutMinZ, D.cutMaxZ);
+
+    const wallTop = D.intH, wallBot = D.floorH;
+    // south + west walls: tiled full height
+    addPlane(D.intW, wallTop - wallBot, [0, (wallTop + wallBot) / 2, -r + off], [0, 0, 0]);
+    addPlane(D.intL, wallTop - wallBot, [-r + off, (wallTop + wallBot) / 2, 0], [0, Math.PI / 2, 0]);
+
+    // north wall
+    if (wallSide === 'N') {
+        // tile everything EXCEPT the under-stair zone, so the indent stays visible
+        addPlane(60, wallTop - wallBot, [-18, (wallTop + wallBot) / 2, r - off], [0, Math.PI, 0]);   // x -48..12
+        addPlane(36, wallTop - D.slopeTopY, [30, (wallTop + D.slopeTopY) / 2, r - off], [0, Math.PI, 0]); // above stairs
+    } else {
+        addPlane(D.intW, wallTop - wallBot, [0, (wallTop + wallBot) / 2, r - off], [0, Math.PI, 0]);
+    }
+    // east wall
+    if (wallSide === 'E') {
+        addPlane(36, wallTop - wallBot, [r - off, (wallTop + wallBot) / 2, -30], [0, -Math.PI / 2, 0]); // z -48..-12
+        addPlane(60, wallTop - D.slopeTopY, [r - off, (wallTop + D.slopeTopY) / 2, 18], [0, -Math.PI / 2, 0]); // above stairs
+    } else {
+        addPlane(D.intL, wallTop - wallBot, [r - off, (wallTop + wallBot) / 2, 0], [0, -Math.PI / 2, 0]);
+    }
+    return g;
+}
+
+function buildWater() {
+    const g = new THREE.Group();
+    const r = D.inR;
+    addBox(g, -r, r, D.floorH, D.waterY, -r, r, M.water);                      // mikvah pool
+    addBox(g, D.borMinX, D.borMaxX, D.borBottom, D.ledgeLevel, D.borMinZ, D.borMaxZ, M.water); // bor
+    addBox(g, D.holeMinX, D.holeMaxX, D.ledgeLevel, D.floorH - D.holeLedgeDrop,
+        D.holeMinZ, D.holeMaxZ, M.water);                                      // rises into the hole
+    return g;
+}
+
+/* =========================================================================
+   STEP DEFINITIONS
+   ========================================================================= */
+const wallName = () => state.coilWall === 'N' ? 'north' : 'east';
+
+const STEPS = [
+{
+    title: 'The Room Is Ready — Cradle Complete',
+    html: () => `
+        <p>We start in a room where the <strong>cradle</strong> is finished and ready:
+        a reinforced concrete tub — floor and walls — sitting on <span class="dim">6&Prime;</span> of gravel,
+        with a waterstop ribbon at the wall joint and <strong>HLM&nbsp;5000</strong> waterproofing
+        coating the entire interior.</p>
+        <p>A thin (<span class="dim">&frac12;&Prime;</span>) foam liner separates the cradle from the mikvah
+        pour, so the mikvah itself stands as its own independent vessel inside the cradle.</p>
+        <div class="callout">Everything from here on gets poured <em>inside</em> this cradle.</div>`,
+    flags: { site: 1, foam: 1 },
+    cam: { pos: [300, 320, 300], tgt: [0, 30, 0] },
+    labels: () => [['Waterproofed cradle', [0, 115, -80]], ['Foam liner', [-63, 108, 0]]]
+},
+{
+    title: 'Forming — Set Up for a One-Shot Pour',
+    html: () => `
+        <p>The forms are built so the <strong>entire mikvah pours in one shot</strong>:
+        all four walls <em>and</em> the floor, monolithically — no cold joints anywhere below
+        the water line.</p>
+        <ul>
+            <li>Interior wall forms define the <span class="dim">96&Prime; &times; 96&Prime;</span> finished interior.</li>
+            <li>A suspended form box shapes the <strong>bor pit</strong> in the deep half of the floor.</li>
+        </ul>
+        <div class="callout">The critical detail: a <strong>styrofoam block-out</strong>
+        (pink) is fastened to the ${wallName()}-wall form, under where the steps will later be.
+        It is about <span class="dim">9&Prime;</span> wide, <span class="dim">2&frac12;&Prime;</span> thick,
+        and runs vertically from <span class="dim">50&Prime;</span> up to <span class="dim">106&Prime;</span> —
+        from below the future water line to above it. When the concrete cures and the foam is
+        pulled, it leaves a recessed channel (indent) in the wall.</div>`,
+    flags: { site: 1, foam: 1, forms: 1, styro: 1 },
+    cam: { pos: [170, 250, 250], tgt: [10, 65, 15] },
+    labels: () => {
+        const s = indentSpec(state.coilWall);
+        return state.coilWall === 'N'
+            ? [['Styrofoam block-out', [(s.min1 + s.max1) / 2, s.yMax + 8, D.inR + 2], true],
+               ['Bor void form', [22, 50, 0]], ['Interior wall forms', [-50, 118, -46]]]
+            : [['Styrofoam block-out', [D.inR + 2, s.yMax + 8, (s.min1 + s.max1) / 2], true],
+               ['Bor void form', [22, 50, 0]], ['Interior wall forms', [-50, 118, -46]]];
+    }
+},
+{
+    title: 'The Pour — One Monolithic Shot',
+    html: () => `
+        <p>Concrete is placed in a single continuous pour: <strong>four walls and the floor
+        together</strong>. The floor is split into two halves:</p>
+        <ul>
+            <li><strong>West half — massive.</strong> The floor is a solid
+            <span class="dim">48&Prime;</span>-thick block of concrete, so the pool is only
+            <span class="dim">5&prime;-0&Prime;</span> deep above it.</li>
+            <li><strong>East half — the bor.</strong> The pit drops to a full
+            <span class="dim">8&prime;-0&Prime;</span> below the rim. Around the top of the pit the
+            wall steps in a few inches, forming a <strong>ledge</strong> at
+            <span class="dim">42&Prime;</span> that will carry the floor poured above it.</li>
+        </ul>
+        <p>The styrofoam block-out is now embedded flush in the ${wallName()} wall —
+        you can see its pink face in the concrete.</p>
+        <div class="callout">Use the <strong>section-cut sliders</strong> (top right) to slice
+        through the pour and see the thick half, the bor, and the ledge.</div>`,
+    flags: { site: 1, foam: 1, shell: 1, styroEmbedded: 1 },
+    cam: { pos: [130, 300, -150], tgt: [0, 40, 15] },
+    labels: () => [
+        ['Thick floor — pool 5′ deep', [-26, 56, 0]],
+        ['Bor — 8′ below the rim', [22, 20, 0]],
+        ['Ledge at 42″', [46, 45, -45]]
+    ]
+},
+{
+    title: 'Strip the Forms — The Indent Appears',
+    html: () => `
+        <p>The forms come off and the styrofoam is dug out. What remains in the
+        ${wallName()} wall is a clean <strong>recessed channel — the indent</strong>:
+        <span class="dim">9&Prime;</span> wide, <span class="dim">2&frac12;&Prime;</span> deep,
+        running from <span class="dim">50&Prime;</span> up to <span class="dim">106&Prime;</span>.</p>
+        <p>Nothing was drilled and nothing penetrates the wall below the water line —
+        the channel is simply <em>cast into</em> the monolithic wall.</p>
+        <div class="callout">This indent is the whole trick. It gives the heating pipes a
+        recessed path to climb from under the steps up past the water line, without
+        sticking out into the pool and without any low penetration.</div>`,
+    flags: { site: 1, foam: 1, shell: 1, indent: 1 },
+    cam: () => state.coilWall === 'N'
+        ? { pos: [-40, 80, -44], tgt: [29, 78, 48] }
+        : { pos: [-44, 80, -40], tgt: [48, 78, 42] },
+    labels: () => {
+        const s = indentSpec(state.coilWall);
+        return state.coilWall === 'N'
+            ? [['The indent (recess)', [(s.min1 + s.max1) / 2, s.yMax + 8, D.inR - 2], true]]
+            : [['The indent (recess)', [D.inR - 2, s.yMax + 8, (s.min1 + s.max1) / 2], true]];
+    }
+},
+{
+    title: 'Pour the Floor Above the Bor + Granite Cover',
+    html: () => `
+        <p>Next, the floor is poured <strong>on top of the ledge</strong>, closing the bor —
+        except for a rabbeted <strong>access hole</strong> left near the corner.</p>
+        <ul>
+            <li>Hole opening: <span class="dim">28&Prime; &times; 24&Prime;</span>, set
+            <span class="dim">4&Prime;</span> off the walls, with a <span class="dim">2&Prime;</span>
+            ledge stepped down <span class="dim">1&Prime;</span> to seat the cover.</li>
+            <li>The <strong>granite bor cover</strong> drops into the rabbet flush with the
+            floor, with <strong>two 4&Prime; holes</strong> through it.</li>
+        </ul>`,
+    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1 },
+    cam: { pos: [90, 310, -90], tgt: [24, 45, 25] },
+    labels: () => [
+        ['Floor above bor (on the ledge)', [-10, 54, -20]],
+        ['Granite cover — two 4″ holes', [28, 58, 30], true]
+    ]
+},
+{
+    title: 'Pour the Steps',
+    html: () => `
+        <p>The staircase is poured next, against the north wall, descending south along the
+        east wall — with the exact dimensions of the master model:</p>
+        <ul>
+            <li><span class="dim">7 steps</span>, <span class="dim">36&Prime;</span> wide,
+            <span class="dim">10&Prime;</span> treads, <span class="dim">7&frac12;&Prime;</span> rise
+            (first drop <span class="dim">7&frac12;&Prime;</span>).</li>
+            <li>Bottom step <span class="dim">36&Prime; &times; 36&Prime;</span>, then a
+            <span class="dim">60&Prime; &times; 36&Prime;</span> landing dropping
+            <span class="dim">4&Prime;</span>.</li>
+        </ul>
+        <p>The flight is a sloped slab — so <strong>underneath the steps there is an open
+        void</strong>. That void is exactly where the radiator will hide. Notice the indent
+        runs right through it: it starts under the stair soffit and continues up behind the
+        flight, past the water line.</p>
+        <div class="callout">Check <strong>&ldquo;Hide stairs&rdquo;</strong> (top right)
+        to look into the void under the flight.</div>`,
+    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1 },
+    cam: { pos: [-150, 290, -130], tgt: [25, 65, 10] },
+    labels: () => [
+        ['7 steps · 7½″ rise · 10″ tread', [30, 112, 10]],
+        ['Void under the flight', [30, 66, 20], true]
+    ]
+},
+{
+    title: 'Install the Heating Coils',
+    html: () => `
+        <p><strong>The problem:</strong> the water level is <span class="dim">51&Prime;</span>
+        above the floor (surface at <span class="dim">99&Prime;</span>). The space under the
+        steps only reaches about <span class="dim">93&Prime;</span> at the wall — everything
+        under there is <em>below</em> the water line, and the wall may not be penetrated
+        below the water line.</p>
+        <p><strong>The solution:</strong> the radiator mounts on the ${wallName()} wall inside
+        the under-stair void. Its supply and return pipes duck into the <strong>indent</strong>,
+        climb the recessed channel — passing behind the stair flight — and only punch through
+        the wall at <span class="dim">${D.penY - D.floorH}&Prime;</span> above the floor:
+        safely <strong>above the 51&Prime; water line</strong>. From there they run to the
+        heating equipment.</p>
+        ${state.coilWall === 'N' ? `
+        <div class="callout">On the <strong>north wall</strong> the coil is a simple serpentine —
+        straight runs right-to-left, turning back at each end, climbing row by row.</div>` : `
+        <div class="callout">On the <strong>east wall</strong> the void is triangular (the
+        stair soffit slopes down), so the coil can&rsquo;t be a plain rectangle — each run is
+        shorter than the one below, <strong>following the shape of the steps</strong>.</div>`}
+        <div class="callout warn">The dashed blue line is the water level. Note both pipes
+        crossing the wall <em>above</em> it.</div>
+        <p>The stairs are drawn translucent here so you can see the coil in place —
+        use <strong>&ldquo;Hide stairs&rdquo;</strong> to remove them entirely.</p>`,
+    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, ghostStairs: 1, coil: 1, waterLine: 1 },
+    cam: () => state.coilWall === 'N'
+        ? { pos: [-46, 72, -46], tgt: [30, 76, 47] }
+        : { pos: [-46, 72, -46], tgt: [47, 76, 26] },
+    labels: () => state.coilWall === 'N'
+        ? [['Heating coil — hidden under the steps', [6, 52, 42], true],
+           ['Pipes exit ABOVE the water line', [29, D.penY + 10, D.inR + 4], true],
+           ['Water level — 51″ deep', [-30, D.waterY + 5, 45]]]
+        : [['Heating coil — follows the steps', [42, 52, 4], true],
+           ['Pipes exit ABOVE the water line', [D.inR + 4, D.penY + 10, 42], true],
+           ['Water level — 51″ deep', [-25, D.waterY + 5, 45]]]
+},
+{
+    title: 'Tile the Mikvah',
+    html: () => `
+        <p>Finally the mikvah is tiled — floor, walls, and the staircase — in blue mosaic.
+        Looking into the finished pool, <strong>nothing hints at the heating system</strong>:
+        the coil sits in shadow under the flight, and above the stairs the wall is tiled
+        flat over the channel.</p>
+        <div class="callout">One thing is deliberately <em>not</em> hidden: <strong>if you look
+        under the steps, the indent is still plainly visible</strong>. Anyone inspecting the
+        mikvah can see exactly how the pipes travel and confirm there is no penetration below
+        the water line — so no one should ever think there&rsquo;s a problem.</div>
+        <p>Use <strong>&ldquo;Hide stairs&rdquo;</strong> or the section cuts to peek under
+        the flight and verify the indent and coil are still there and inspectable.</p>`,
+    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, stairTiles: 1, coil: 1, tiles: 1, waterLine: 1 },
+    cam: { pos: [-130, 280, -140], tgt: [15, 55, 5] },
+    labels: () => state.coilWall === 'N'
+        ? [['Tiled over — invisible from the pool', [30, 100, 44]],
+           ['Indent stays visible under the steps', [29, 60, 40], true]]
+        : [['Tiled over — invisible from the pool', [44, 100, 30]],
+           ['Indent stays visible under the steps', [40, 60, 29], true]]
+},
+{
+    title: 'Fill With Water — The Finished Mikvah',
+    html: () => `
+        <p>The mikvah is filled to its working depth of <span class="dim">51&Prime;</span>,
+        and the bor below fills through the cover holes.</p>
+        <ul>
+            <li>The radiator sits fully submerged under the steps, quietly heating the water.</li>
+            <li>Its pipes surface inside the recessed indent and cross the wall at
+            <span class="dim">${D.penY - D.floorH}&Prime;</span> — comfortably above the water.</li>
+            <li>Under the steps, the indent remains open to inspection.</li>
+        </ul>
+        <div class="callout">Invisible where it should be invisible; verifiable where it must
+        be verifiable.</div>`,
+    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, stairTiles: 1, coil: 1, tiles: 1, water: 1, waterLine: 1 },
+    cam: { pos: [190, 170, 200], tgt: [0, 70, 0] },
+    labels: () => [['Water level — 51″', [-46, D.waterY + 5, -46], true]]
+}
+];
+
+/* =========================================================================
+   STATE + REBUILD
+   ========================================================================= */
+const state = {
+    step: 0,
+    coilWall: 'N',
+    hideStairs: false,
+    showLabels: true
+};
+
+function rebuild() {
+    world.clear();
+    labelGroup.clear();
+    const step = STEPS[state.step];
+    const f = step.flags;
+
+    if (f.site) world.add(buildSite());
+    if (f.foam) world.add(buildFoam());
+    if (f.forms) world.add(buildForms(state.coilWall));
+    if (f.shell) world.add(buildShell(state.coilWall, true));
+    if (f.styro || f.styroEmbedded) world.add(buildStyro(state.coilWall));
+    if (f.slab) world.add(buildSlabAndCover(f.cover));
+    if (f.stairs && !state.hideStairs) world.add(buildStairs(f.stairTiles, f.ghostStairs));
+    if (f.coil) world.add(buildCoil(state.coilWall));
+    if (f.tiles) world.add(buildTiles(state.coilWall));
+    if (f.water) world.add(buildWater());
+    if (f.waterLine) world.add(buildWaterLine());
+
+    if (state.showLabels && step.labels) {
+        for (const [text, pos, accent] of step.labels()) makeLabel(text, pos, !!accent);
+    }
+}
+
+/* ---------------- camera animation ---------------- */
+let camAnim = null;
+function flyTo(camSpec) {
+    const spec = typeof camSpec === 'function' ? camSpec() : camSpec;
+    camAnim = {
+        start: performance.now(),
+        duration: 900,
+        fromPos: camera.position.clone(),
+        toPos: new THREE.Vector3(...spec.pos),
+        fromTgt: controls.target.clone(),
+        toTgt: new THREE.Vector3(...spec.tgt)
+    };
+}
+
+/* ---------------- UI wiring ---------------- */
+const stepList = document.getElementById('stepList');
+const stepContent = document.getElementById('stepContent');
+const btnPrev = document.getElementById('btnPrev');
+const btnNext = document.getElementById('btnNext');
+
+function renderUI() {
+    stepList.innerHTML = '';
+    STEPS.forEach((s, i) => {
+        const b = document.createElement('button');
+        b.className = 'step-chip' + (i === state.step ? ' active' : i < state.step ? ' done' : '');
+        b.textContent = (i + 1) + '. ' + s.title.split(' — ')[0].split(' + ')[0];
+        b.onclick = () => goTo(i);
+        stepList.appendChild(b);
+    });
+    const s = STEPS[state.step];
+    stepContent.innerHTML =
+        `<div class="step-num">Step ${state.step + 1} of ${STEPS.length}</div>
+         <h2>${s.title}</h2>${s.html()}`;
+    stepContent.scrollTop = 0;
+    btnPrev.disabled = state.step === 0;
+    btnNext.textContent = state.step === STEPS.length - 1 ? 'Done ✓' : 'Next →';
+    btnNext.disabled = state.step === STEPS.length - 1;
+}
+
+function goTo(i) {
+    state.step = Math.max(0, Math.min(STEPS.length - 1, i));
+    renderUI();
+    rebuild();
+    flyTo(STEPS[state.step].cam);
+}
+
+btnPrev.onclick = () => goTo(state.step - 1);
+btnNext.onclick = () => goTo(state.step + 1);
+document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') goTo(state.step + 1);
+    if (e.key === 'ArrowLeft') goTo(state.step - 1);
+});
+
+for (const radio of document.querySelectorAll('input[name=coilWall]')) {
+    radio.onchange = () => {
+        state.coilWall = radio.value;
+        renderUI();
+        rebuild();
+        flyTo(STEPS[state.step].cam);
+    };
+}
+document.getElementById('chkHideStairs').onchange = e => { state.hideStairs = e.target.checked; rebuild(); };
+document.getElementById('chkLabels').onchange = e => { state.showLabels = e.target.checked; rebuild(); };
+
+const cutX = document.getElementById('cutX'), cutXVal = document.getElementById('cutXVal');
+const cutZ = document.getElementById('cutZ'), cutZVal = document.getElementById('cutZVal');
+cutX.oninput = () => {
+    clipX.constant = cutX.value >= 200 ? 2000 : +cutX.value;
+    cutXVal.textContent = cutX.value >= 200 ? 'off' : cutX.value + '″';
+};
+cutZ.oninput = () => {
+    clipZ.constant = cutZ.value >= 200 ? 2000 : +cutZ.value;
+    cutZVal.textContent = cutZ.value >= 200 ? 'off' : cutZ.value + '″';
+};
+
+/* ---------------- boot ---------------- */
+resize();
+renderUI();
+rebuild();
+flyTo(STEPS[0].cam);
+document.getElementById('loading').style.display = 'none';
+
+function animate() {
+    requestAnimationFrame(animate);
+    if (camAnim) {
+        const t = Math.min((performance.now() - camAnim.start) / camAnim.duration, 1);
+        const e = 1 - Math.pow(1 - t, 3); // ease-out cubic
+        camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, e);
+        controls.target.lerpVectors(camAnim.fromTgt, camAnim.toTgt, e);
+        if (t >= 1) camAnim = null;
+    }
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();
+window.__dbg = { camera, controls };
+</script>
+</body>
+</html>

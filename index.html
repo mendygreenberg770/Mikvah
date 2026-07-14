@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mikvah Construction Guides</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --accent: #1d6fb8;
+    --accent-dark: #14507f;
+    --ink: #1a2330;
+    --muted: #5b6472;
+    --line: #e3e7ec;
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+    background: #f4f6f8;
+}
+
+.hero {
+    background: linear-gradient(160deg, #10344f 0%, #14507f 55%, #1d6fb8 100%);
+    color: #fff;
+    padding: 72px 24px 88px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.hero::after {
+    content: '';
+    position: absolute; inset: auto 0 0 0; height: 90px;
+    background:
+        radial-gradient(120% 100% at 50% 115%, rgba(255,255,255,0.18), transparent 60%);
+    pointer-events: none;
+}
+.hero .kicker {
+    font-size: 0.78em; font-weight: 700;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: #9cc8ee;
+}
+.hero h1 {
+    margin: 14px auto 12px;
+    font-size: clamp(1.9em, 4.5vw, 3em);
+    font-weight: 800; letter-spacing: -0.02em;
+    max-width: 760px;
+}
+.hero p.sub {
+    margin: 0 auto;
+    max-width: 620px;
+    font-size: 1.02em; line-height: 1.65;
+    color: #cfe2f3;
+}
+
+.wrap {
+    max-width: 1060px;
+    margin: -48px auto 0;
+    padding: 0 24px 80px;
+    position: relative; z-index: 2;
+}
+
+.section-label {
+    font-size: 0.8em; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+    margin: 46px 0 16px 4px;
+}
+.section-label:first-child { margin-top: 0; }
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 22px;
+}
+.card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: flex; flex-direction: column;
+    box-shadow: 0 2px 10px rgba(16,40,64,0.06);
+    transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+}
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 34px rgba(16,40,64,0.14);
+    border-color: #bcd4ea;
+}
+.card .thumb {
+    height: 150px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3em;
+    position: relative;
+}
+.thumb.coils {
+    background:
+        repeating-linear-gradient(0deg, transparent 0 22px, rgba(255,255,255,0.28) 22px 27px),
+        linear-gradient(135deg, #b87333, #8a4f1d);
+}
+.thumb.model {
+    background:
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.10) 0 14px, transparent 14px 28px),
+        linear-gradient(135deg, #2d7dd2, #0b4f8f);
+}
+.thumb.soon {
+    background:
+        repeating-linear-gradient(-45deg, rgba(255,255,255,0.35) 0 12px, transparent 12px 24px),
+        linear-gradient(135deg, #b9c3cd, #8b97a4);
+}
+.card .body { padding: 20px 22px 22px; display: flex; flex-direction: column; flex: 1; }
+.card .tag {
+    align-self: flex-start;
+    font-size: 0.68em; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 20px;
+    background: #eaf2fa; color: var(--accent-dark);
+    margin-bottom: 10px;
+}
+.card .tag.soon-tag { background: #eef0f3; color: var(--muted); }
+.card h3 { margin: 0 0 8px; font-size: 1.12em; letter-spacing: -0.01em; }
+.card p { margin: 0; font-size: 0.87em; line-height: 1.6; color: var(--muted); flex: 1; }
+.card .go {
+    margin-top: 16px;
+    font-size: 0.85em; font-weight: 700; color: var(--accent);
+}
+.card:hover .go { text-decoration: underline; }
+.card.disabled { pointer-events: none; opacity: 0.75; }
+
+footer {
+    text-align: center;
+    padding: 28px 20px 44px;
+    font-size: 0.8em; color: var(--muted);
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+    <div class="kicker">Visual Reference for Contractors &amp; Builders</div>
+    <h1>Mikvah Construction Guides</h1>
+    <p class="sub">Interactive 3D walkthroughs of how a mikvah is actually built —
+    the pour, the bor, the steps, and the details that have to be done right the first time.
+    Orbit, slice, and step through each stage of construction.</p>
+</div>
+
+<div class="wrap">
+    <div class="section-label">Guides</div>
+    <div class="cards">
+        <a class="card" href="guides/heating-coils.html">
+            <div class="thumb coils">&#9832;</div>
+            <div class="body">
+                <div class="tag">Interactive 3D Guide</div>
+                <h3>Hidden Heating Coils Under the Steps</h3>
+                <p>The radiator hides in the void under the staircase — but its pipes must
+                cross the wall <em>above</em> the 51&Prime; water line. A styrofoam block-out
+                cast into the one-shot pour leaves an indent that solves it. Step-by-step,
+                from forming to the finished, tiled, water-filled mikvah.</p>
+                <div class="go">Open the guide &rarr;</div>
+            </div>
+        </a>
+
+        <a class="card" href="guides/full-model.html">
+            <div class="thumb model">&#9635;</div>
+            <div class="body">
+                <div class="tag">Reference Model</div>
+                <h3>Full Parametric 3D Model</h3>
+                <p>The complete construction model with every dimension adjustable —
+                cradle, waterstop, HLM&nbsp;5000, foam, bor and cover, stairs, tile, and
+                water levels. Includes a build-sequence animation and section cuts.</p>
+                <div class="go">Open the model &rarr;</div>
+            </div>
+        </a>
+
+        <div class="card disabled">
+            <div class="thumb soon">&#8230;</div>
+            <div class="body">
+                <div class="tag soon-tag">Coming Soon</div>
+                <h3>More Guides</h3>
+                <p>Additional visual guides — bor filling and rainwater, plumbing and
+                drains, waterproofing details, and more — will be added here.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>Mikvah Construction Guides &middot; drawings are illustrative — verify all dimensions with your rav and engineer.</footer>
+
+</body>
+</html>
