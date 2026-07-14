@@ -246,7 +246,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 3:00 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 3:20 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -620,14 +620,14 @@ function buildForms(wallSide) {
     // pour; a top board would just be pushed up by the concrete. So each
     // panel hangs down exactly to the screed line it borders: 48" on the
     // thick half, and deeper — 42", the ledge line — on the bor half.
-    const split = D.ledgeMinX;                // -4": west of this = thick floor
-    const wB = D.floorH, eB = D.borBottom;    // panel bottom elevations
+    const split = D.ledgeMinX;                // -4": east of this = thick floor
+    const wB = D.floorH, eB = D.ledgeLevel;   // panel bottoms: the screed line they border
     for (const [z0, z1] of [[r - t, r], [-r, -r + t]]) {   // north + south walls
-        addBox(g, -r, split, wB, top, z0, z1, M.plywood);  //   thick-floor side
-        addBox(g, split, r, eB, top, z0, z1, M.plywood);   //   bor side — one continuous piece to 12"
+        addBox(g, -r, split, wB, top, z0, z1, M.plywood);  //   thick-floor side: to the 48" line
+        addBox(g, split, r, eB, top, z0, z1, M.plywood);   //   bor side: to the 42" ledge line
     }
-    addBox(g, -r, -r + t, wB, top, -r + t, r - t, M.plywood);  // west wall
-    addBox(g, r - t, r, eB, top, -r + t, r - t, M.plywood);    // east wall — down to 12", a foot off the ground
+    addBox(g, -r, -r + t, wB, top, -r + t, r - t, M.plywood);  // east wall
+    addBox(g, r - t, r, eB, top, -r + t, r - t, M.plywood);    // west wall (bor side)
     // walers (horizontal stiffeners) for a built look
     for (const y of [58, 76, 94]) {
         addBox(g, -r + t, r - t, y, y + 3, r - t - 3, r - t, M.lumber);
@@ -640,6 +640,12 @@ function buildForms(wallSide) {
     // a foot off the ground — the bor's base is poured under it and leveled
     // at 12" inside the opening.
     const fb = D.borBottom, ft2 = D.ledgeLevel;
+    // the INDENT: horizontal boards at the ledge line connect the wall forms
+    // to the bor form — one continuous assembly that comes down the wall,
+    // steps in 6" (shaping the ledge), and keeps going down as the bor form
+    addBox(g, D.borMaxX - 0.1, r - t, ft2, ft2 + 1.5, D.borMinZ, D.borMaxZ, M.plywood);      // west gap
+    addBox(g, D.borMinX, r - t, ft2, ft2 + 1.5, D.borMaxZ - 0.1, r - t, M.plywood);          // north gap
+    addBox(g, D.borMinX, r - t, ft2, ft2 + 1.5, -r + t, D.borMinZ + 0.1, M.plywood);         // south gap
     addBox(g, D.borMinX, D.borMaxX, fb, ft2, D.borMaxZ - 1.5, D.borMaxZ, M.plywood);         // north side
     addBox(g, D.borMinX, D.borMaxX, fb, ft2, D.borMinZ, D.borMinZ + 1.5, M.plywood);         // south side
     addBox(g, D.borMinX, D.borMinX + 1.5, fb, ft2, D.borMinZ + 1.5, D.borMaxZ - 1.5, M.plywood); // west side
@@ -977,16 +983,19 @@ const STEPS = [
             <li>Interior wall forms define the <span class="dim">96&Prime; &times; 96&Prime;</span> finished interior.</li>
             <li>There are <strong>no boards over the floor surfaces</strong> — the wet concrete
             would just push them up. The crew levels (screeds) the floor to its lines during
-            the pour. On the thick half the wall forms hang to the <span class="dim">48&Prime;</span>
-            floor line; on the bor half they run <strong>continuously, in one piece, all the way
-            down to the <span class="dim">12&Prime;</span> bor-bottom line</strong> — a foot off
-            the ground.</li>
-            <li>An <strong>open plywood sleeve</strong> — no top and <em>no bottom</em> — keeps
-            the bor pit hollow. Its sides end a foot off the ground: the bor&rsquo;s base is
+            the pour: <span class="dim">48&Prime;</span> on the thick half,
+            <span class="dim">42&Prime;</span> on the ledge.</li>
+            <li>On the bor half the formwork is <strong>one continuous piece</strong>: the wall
+            form comes down to the <span class="dim">42&Prime;</span> ledge line, <strong>indents
+            in <span class="dim">6&Prime;</span></strong> — that little horizontal step is what
+            shapes the ledge — and then keeps going <strong>down as the bor form</strong>.
+            Because it&rsquo;s all connected, nothing needs to run to the bottom.</li>
+            <li>Below the indent, the bor form is an <strong>open sleeve</strong> — no top and
+            <em>no bottom</em>. Its sides end a foot off the ground: the bor&rsquo;s base is
             poured <em>under</em> it and leveled at <span class="dim">12&Prime;</span> inside the
             opening. Two <strong>2&times;4s</strong> bridge the opening — one on each side —
-            holding it from <em>above</em>, because the wet concrete would otherwise float
-            it up.</li>
+            holding the assembly from <em>above</em>, because the wet concrete would otherwise
+            float it up.</li>
         </ul>
         <div class="callout">The critical detail: a <strong>styrofoam block-out</strong>
         (pink) is fastened high on the ${wallName()}-wall form, right where the top of the
@@ -1002,6 +1011,7 @@ const STEPS = [
         const s = indentSpec(state.coilWall);
         const common = [
             ['Bor form — open sleeve, ends 12″ off the ground', [22, 26, 0], true],
+            ['One piece: wall form indents 6″, continues down', [45, 50, 0], true],
             ['Two 2×4s hold it from above', [22, 118, -56]],
             ['Interior wall forms', [-52, 118, -46]],
             ['Open — screeded to 48″ during the pour', [-26, 54, 0]]
