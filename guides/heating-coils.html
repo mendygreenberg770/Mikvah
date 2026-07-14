@@ -246,7 +246,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 4:40 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 5:30 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -655,10 +655,11 @@ function buildForms(wallSide) {
     addBox(g, D.borMinX, r - t, ft2, ft2 + 1.5, -r + t, D.borMinZ + 0.1, M.plywood);         // south gap
     addBox(g, D.borMinX, D.borMaxX, fb, ft2, D.borMaxZ - 1.5, D.borMaxZ, M.plywood);         // north side
     addBox(g, D.borMinX, D.borMaxX, fb, ft2, D.borMinZ, D.borMinZ + 1.5, M.plywood);         // south side
-    // this side faces the thick floor: it rises 6" past the others, up to
-    // the 48" floor line — it IS the lip on this side, so the thick floor
-    // pours directly against it (no separate board, no ledge strip here)
-    addBox(g, D.borMinX, D.borMinX + 1.5, fb, D.floorH, D.borMinZ + 1.5, D.borMaxZ - 1.5, M.plywood);
+    // this side faces the thick floor: the sleeve wall stays at 42" like
+    // the other sides, and the SAME 6" lip sits on top of it, up to the
+    // 48" floor line — the thick floor pours directly against the lip
+    addBox(g, D.borMinX, D.borMinX + 1.5, fb, ft2, D.borMinZ + 1.5, D.borMaxZ - 1.5, M.plywood);
+    addBox(g, D.borMinX, D.borMinX + 1.5, D.ledgeLevel, D.floorH, D.borMinZ, D.borMaxZ, M.lumber);
     addBox(g, D.borMaxX - 1.5, D.borMaxX, fb, ft2, D.borMinZ + 1.5, D.borMaxZ - 1.5, M.plywood); // east side
     // held from above by two 2x4s bridging the opening — one on each side —
     // because the wet concrete would otherwise float the box up
@@ -1000,9 +1001,10 @@ const STEPS = [
             <strong><span class="dim">6&Prime;</span>-tall lip</strong> continues below the
             panels, so the pour inside stops <span class="dim">6&Prime;</span> lower, at the
             <span class="dim">42&Prime;</span> ledge. On the side facing the thick floor,
-            the <strong>bor form&rsquo;s own wall rises up to the 48&Prime; line</strong> —
-            it is the lip on that side — and the thick floor pours right against it.
-            The floor above the bor gets poured on top of the ledge later.</li>
+            the <strong>same <span class="dim">6&Prime;</span> lip sits right on top of the
+            bor form&rsquo;s wall</strong>, up to the 48&Prime; line — and the thick floor
+            pours directly against it. The floor above the bor gets poured on top of the
+            ledge later.</li>
             <li>At the bottom of the lip the form <strong>indents in
             <span class="dim">6&Prime;</span></strong> — that little horizontal step is what
             shapes the ledge — and then keeps going <strong>down as the bor form</strong>.
@@ -1029,7 +1031,7 @@ const STEPS = [
         const common = [
             ['Bor form — open sleeve, ends 12″ off the ground', [22, 26, 0], true],
             ['One piece: wall form indents 6″, continues down', [45, 50, 0], true],
-            ['Bor form wall rises to 48″ — thick floor pours against it', [2, 58, -20]],
+            ['Same 6″ lip on the bor form — thick floor pours against it', [2, 58, -20]],
             ['Two 2×4s hold it from above', [22, 118, -56]],
             ['Interior wall forms', [-52, 118, -46]],
             ['Open — screeded to 48″ during the pour', [-26, 54, 0]]
