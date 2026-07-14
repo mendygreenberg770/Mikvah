@@ -503,12 +503,20 @@ function buildSite() {
     const floorW = outer + 2 * D.floorExt;                     // 169
 
     // room extents: walls sit 2-3' from the pool edge, ~5.5' on the entry
-    // (north) side. Outside them the model is a cut-away diorama.
+    // (north) side
     const RW = 90, RN = 126;
-    addBox(g, -RW, RW, -D.cradleFloorT - D.gravel - 16, -D.cradleFloorT - D.gravel,
-        -RW, RN, M.ground);                                            // earth under everything
+    const skB = -D.cradleFloorT - D.gravel - 16;   // bottom of the foundation
+    // earth + gravel live INSIDE the skirt — visible only via section cuts
+    addBox(g, -88, 88, skB + 2, -D.cradleFloorT - D.gravel, -88, RN - 2, M.ground);
     addBox(g, -88, 88, -D.cradleFloorT - D.gravel, -D.cradleFloorT, -88, 88, M.gravel);
     addBox(g, -floorW / 2, floorW / 2, -D.cradleFloorT, 0, -floorW / 2, floorW / 2, M.cradle);
+    // foundation skirt: closes the sides and bottom below the room floor, so
+    // orbiting around the model never shows the buried layers — only the room
+    addBox(g, -RW, RW, skB, D.cradleH, RN - 2, RN, M.roomFloor);
+    addBox(g, -RW, RW, skB, D.cradleH, -RW, -RW + 2, M.roomFloor);
+    addBox(g, -RW, -RW + 2, skB, D.cradleH, -RW + 2, RN - 2, M.roomFloor);
+    addBox(g, RW - 2, RW, skB, D.cradleH, -RW + 2, RN - 2, M.roomFloor);
+    addBox(g, -RW, RW, skB, skB + 2, -RW, RN, M.roomFloor);
 
     // cradle walls
     const iw = realW / 2;                                      // 60.5 (inner face of cradle)
@@ -866,10 +874,11 @@ function buildTiles(wallSide) {
     } else {
         addPlane(D.intW, wallTop - wallBot, [0, (wallTop + wallBot) / 2, r - off], [0, Math.PI, 0]);
     }
-    // east wall
+    // east wall — in east-coil mode, tile everything visible; only the tight
+    // patch behind the coil and indent (hidden under the flight) stays bare
     if (wallSide === 'E') {
-        addPlane(36, wallTop - wallBot, [r - off, (wallTop + wallBot) / 2, -30], [0, -Math.PI / 2, 0]); // z -48..-12
-        addPlane(60, wallTop - D.slopeTopY, [r - off, (wallTop + D.slopeTopY) / 2, 18], [0, -Math.PI / 2, 0]); // above stairs
+        addPlane(54, wallTop - wallBot, [r - off, (wallTop + wallBot) / 2, -21], [0, -Math.PI / 2, 0]); // z -48..6, full height
+        addPlane(42, wallTop - 90, [r - off, (wallTop + 90) / 2, 27], [0, -Math.PI / 2, 0]);            // z 6..48, above 90"
     } else {
         addPlane(D.intL, wallTop - wallBot, [r - off, (wallTop + wallBot) / 2, 0], [0, -Math.PI / 2, 0]);
     }
