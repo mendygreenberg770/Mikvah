@@ -799,20 +799,27 @@ function buildCoil(wallSide) {
         addPipe(g, [[s.riserA, D.penY, rec], [s.riserA, D.penY, 64]], R, M.copper);
         addPipe(g, [[s.riserB, D.penY, rec], [s.riserB, D.penY, 64]], R, M.copper);
     } else {
-        // east wall — the coil steps down with the staircase soffit
-        pts = [
-            [rec, D.penY, s.riserA], [rec, 85, s.riserA], [face, 85, s.riserA],
-            [face, 78, s.riserA], [face, 78, 44.5], [face, 72, 44.5],
-            [face, 72, 31], [face, 66, 31], [face, 66, 44.5],
-            [face, 60, 44.5], [face, 60, 23], [face, 54, 23], [face, 54, 44.5],
-            // return jumper up near the north corner, back into the recess
-            [back, 54, 44.5], [back, 84, 44.5],
-            [rec, 84, s.riserB], [rec, D.penY, s.riserB]
-        ];
-        addPipe(g, pts, R, M.copper);
+        // east wall — a dense 1/2" copper immersion heat exchanger, custom
+        // fabricated to the recess (per the fabrication drawing): hairpin
+        // pairs of runs stack on a 3" pitch, and each pair is shorter than
+        // the pair below it, following the staircase soffit
+        const R2 = 0.7;
+        const zN = 44;                                   // north end of the runs
+        const zMin = y => (y + 3 - 48) / 0.75 - 12;      // soffit line, 3" clearance
+        pts = [[rec, D.penY, 40.5], [rec, 85, 40.5], [face, 85, 40.5], [face, 80, 40.5]];
+        for (let i = 0; i < 5; i++) {
+            const yT = 80 - i * 6, yB = yT - 3;
+            const zS = Math.max(zMin(yT), 2);
+            if (i === 0) pts.push([face, yT, zS]);
+            else pts.push([face, yT, zN], [face, yT, zS]);
+            pts.push([face, yB, zS], [face, yB, zN]);
+        }
+        // both pipes climb together at the tall end, back into the recess
+        pts.push([back, 53, zN], [back, 84, zN], [rec, 84, zN], [rec, D.penY, zN]);
+        addPipe(g, pts, R2, M.copper);
         // through the wall — from there they run on to the heating equipment
-        addPipe(g, [[rec, D.penY, s.riserA], [64, D.penY, s.riserA]], R, M.copper);
-        addPipe(g, [[rec, D.penY, s.riserB], [64, D.penY, s.riserB]], R, M.copper);
+        addPipe(g, [[rec, D.penY, 40.5], [64, D.penY, 40.5]], R2, M.copper);
+        addPipe(g, [[rec, D.penY, zN], [64, D.penY, zN]], R2, M.copper);
     }
     return g;
 }
@@ -877,8 +884,8 @@ function buildTiles(wallSide) {
     // east wall — in east-coil mode, tile everything visible; only the tight
     // patch behind the coil and indent (hidden under the flight) stays bare
     if (wallSide === 'E') {
-        addPlane(54, wallTop - wallBot, [r - off, (wallTop + wallBot) / 2, -21], [0, -Math.PI / 2, 0]); // z -48..6, full height
-        addPlane(42, wallTop - 90, [r - off, (wallTop + 90) / 2, 27], [0, -Math.PI / 2, 0]);            // z 6..48, above 90"
+        addPlane(48, wallTop - wallBot, [r - off, (wallTop + wallBot) / 2, -24], [0, -Math.PI / 2, 0]); // z -48..0, full height
+        addPlane(48, wallTop - 90, [r - off, (wallTop + 90) / 2, 24], [0, -Math.PI / 2, 0]);            // z 0..48, above 90"
     } else {
         addPlane(D.intL, wallTop - wallBot, [r - off, (wallTop + wallBot) / 2, 0], [0, -Math.PI / 2, 0]);
     }
@@ -1079,8 +1086,12 @@ const STEPS = [
         <div class="callout">On the <strong>north wall</strong> the coil is a simple serpentine —
         straight runs right-to-left, turning back at each end, climbing row by row.</div>` : `
         <div class="callout">On the <strong>east wall</strong> the void is triangular (the
-        stair soffit slopes down), so the coil can&rsquo;t be a plain rectangle — each run is
-        shorter than the one below, <strong>following the shape of the steps</strong>.</div>`}
+        stair soffit slopes down), so the coil can&rsquo;t be a plain rectangle. It&rsquo;s a
+        custom-fabricated <span class="dim">&frac12;&Prime;</span> copper immersion heat
+        exchanger (roughly <span class="dim">25&nbsp;m</span> of immersed pipe): hairpin runs
+        stack tightly, and each pair is shorter than the pair below,
+        <strong>following the shape of the steps</strong>. The contractor should measure the
+        as-built recess and void before fabrication.</div>`}
         <div class="callout warn">The dashed blue line is the water level. Note both pipes
         crossing the wall <em>above</em> it.</div>
         <p>The stairs are drawn translucent here so you can see the coil in place —
