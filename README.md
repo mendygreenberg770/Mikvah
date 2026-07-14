@@ -12,7 +12,7 @@ intended for contractors and builders.
   bor with the two-hole granite cover, the staircase, and the key detail: a styrofoam
   block-out cast into the wall that leaves a recessed indent, letting the radiator's
   pipes climb from the void under the steps to a wall penetration *above* the 51″ water
-  line. Supports both coil placements (north wall serpentine / east wall step-shaped),
+  line. Supports both coil placements (north wall serpentine / west wall step-shaped),
   section cuts, hide-stairs, and labels.
 - `guides/full-model.html` — the full parametric reference model (every dimension
   adjustable, build-sequence animation, section cuts).

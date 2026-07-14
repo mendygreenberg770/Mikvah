@@ -195,13 +195,31 @@ body {
     #app { flex-direction: column; }
     #sidebar {
         width: 100vw; min-width: 0;
-        height: 46vh; order: 2;
+        height: 48vh; order: 2;
         border-right: none; border-top: 1px solid var(--line);
     }
-    #viewport { height: 54vh; }
+    #viewport { height: 52vh; }
     #legend { display: none; }
-    #viewOptions { min-width: 0; padding: 9px 12px; max-width: 62vw; max-height: 46vh; overflow-y: auto; }
+    #viewOptions { min-width: 0; padding: 9px 12px; max-width: 62vw; max-height: 44vh; overflow-y: auto; }
     #hint { display: none; }
+
+    /* compact chrome so the step text gets the room */
+    #sidebar header { padding: 8px 16px 6px; }
+    #sidebar header .tagline { display: none; }
+    #sidebar header h1 { font-size: 0.95em; margin: 2px 0 0; }
+    #stepList {
+        flex-wrap: nowrap; overflow-x: auto;
+        padding: 8px 10px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    #stepList::-webkit-scrollbar { display: none; }
+    .step-chip { flex: 0 0 auto; white-space: nowrap; }
+    #stepContent { padding: 12px 16px; }
+    #stepContent h2 { font-size: 1.12em; margin-bottom: 8px; }
+    #nav { padding: 10px 16px; }
+    #nav button { padding: 9px 0; }
+    #buildStamp { padding: 3px 10px 6px; }
 }
 </style>
 <script type="importmap">
@@ -227,7 +245,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 2:15 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 2:40 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -239,7 +257,7 @@ body {
             <div class="group" style="border-top:none; margin-top:0; padding-top:0;">
                 <div class="group-label">Coil Wall</div>
                 <label class="row"><input type="radio" name="coilWall" value="N" checked> North wall — straight serpentine</label>
-                <label class="row"><input type="radio" name="coilWall" value="E"> East wall — follows the steps</label>
+                <label class="row"><input type="radio" name="coilWall" value="E"> West wall — follows the steps</label>
             </div>
             <div class="group">
                 <label class="row"><input type="checkbox" id="chkHideStairs"> Hide stairs (peek underneath)</label>
@@ -247,7 +265,7 @@ body {
             </div>
             <div class="group">
                 <div class="group-label">Section Cuts</div>
-                <div class="slider-label"><span>East&ndash;West</span><span id="cutXVal">off</span></div>
+                <div class="slider-label"><span>West&ndash;East</span><span id="cutXVal">off</span></div>
                 <input type="range" id="cutX" min="-70" max="200" value="200" step="1">
                 <div class="slider-label"><span>North&ndash;South</span><span id="cutZVal">off</span></div>
                 <input type="range" id="cutZ" min="-70" max="200" value="200" step="1">
@@ -280,13 +298,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    DIMENSIONS — all inches, taken from the master parametric model defaults.
    Y = 0 is the top of the cradle floor slab (bottom of the monolithic pour).
    North wall = +Z (you enter here, steps descend to the south).
-   East wall  = +X (the stairs run along it).
+   West wall  = +X (the stairs run along it; the bor is under this half).
    ========================================================================= */
 const D = {
     intW: 96, intL: 96, intH: 108,       // mikvah interior 8' x 8', walls 9' tall
     wall: 12,                            // mikvah wall thickness
     floorH: 48,                          // top of the thick (5'-deep) floor half
-    // Bor (deep half): the pit under the east side of the floor
+    // Bor (deep half): the pit under the west (+X) side of the floor
     borMinX: 2, borMaxX: 42,             // bor width 40"
     borMinZ: -42, borMaxZ: 42,           // bor length 84" (6" ledge to N/S walls)
     ledgeLevel: 42,                      // "the wall goes in a little" — ledge elevation
@@ -329,9 +347,11 @@ function indentSpec(wallSide) {
     // run down toward the bottom of the bor tevila.
     if (wallSide === 'N') {
         // north wall: 9" wide, 2.5" deep, from ~86" (just under the first
-        // step at the wall) up to 106" (above the 99" water line)
-        return { axis: 'Z', min1: 38, max1: 47, yMin: 86, yMax: 106,
-                 face: D.inR, depth: 2.5, riserA: 40.5, riserB: 44.5 };
+        // step at the wall) up to 106" (above the 99" water line). Placed
+        // near the OPEN edge of the steps — away from the side wall — so
+        // it's easy to see when peeking under the flight.
+        return { axis: 'Z', min1: 13, max1: 22, yMin: 86, yMax: 106,
+                 face: D.inR, depth: 2.5, riserA: 15.5, riserB: 19.5 };
     }
     // east wall: same recess near the north corner (soffit is 85.5"-92" there)
     return { axis: 'X', min1: 38, max1: 47, yMin: 84, yMax: 106,
@@ -791,15 +811,16 @@ function buildCoil(wallSide) {
     const back = D.inR - 3.6;
     let pts;
     if (wallSide === 'N') {
-        // serpentine on the north wall under the stair slab (x left-right, y up)
-        const xE = 41.5, xW = 15;
+        // serpentine on the north wall under the stair slab (x left-right, y
+        // up); the recess sits near the open edge of the steps
+        const xE = 44, xW = 15;
         pts = [
             [s.riserA, D.penY, rec], [s.riserA, 88, rec], [s.riserA, 88, face],
-            [xW, 88, face], [xW, 82, face], [xE, 82, face], [xE, 76, face],
-            [xW, 76, face], [xW, 70, face], [xE, 70, face], [xE, 64, face],
-            [xW, 64, face], [xW, 58, face], [xE, 58, face],
+            [xE, 88, face], [xE, 82, face], [xW, 82, face], [xW, 76, face],
+            [xE, 76, face], [xE, 70, face], [xW, 70, face], [xW, 64, face],
+            [xE, 64, face], [xE, 58, face], [xW, 58, face],
             // return jumper — a plane in front of the rows, back up to the recess
-            [xE, 58, back], [xE, 88, back], [s.riserB, 88, back],
+            [xW, 58, back], [xW, 88, back], [s.riserB, 88, back],
             [s.riserB, 88, rec], [s.riserB, D.penY, rec]
         ];
         addPipe(g, pts, R, M.copper);
@@ -918,7 +939,7 @@ function buildWater() {
 /* =========================================================================
    STEP DEFINITIONS
    ========================================================================= */
-const wallName = () => state.coilWall === 'N' ? 'north' : 'east';
+const wallName = () => state.coilWall === 'N' ? 'north' : 'west';
 
 const STEPS = [
 {
@@ -989,10 +1010,10 @@ const STEPS = [
         <p>Concrete is placed in a single continuous pour: <strong>four walls and the floor
         together</strong>. The floor is split into two halves:</p>
         <ul>
-            <li><strong>West half — massive.</strong> The floor is a solid
+            <li><strong>East half — massive.</strong> The floor is a solid
             <span class="dim">48&Prime;</span>-thick block of concrete, so the pool is only
             <span class="dim">5&prime;-0&Prime;</span> deep above it.</li>
-            <li><strong>East half — the bor.</strong> The pit drops to a full
+            <li><strong>West half — the bor.</strong> The pit drops to a full
             <span class="dim">8&prime;-0&Prime;</span> below the rim. Around the top of the pit the
             wall steps in a few inches, forming a <strong>ledge</strong> at
             <span class="dim">42&Prime;</span> that will carry the floor poured above it.</li>
@@ -1026,7 +1047,7 @@ const STEPS = [
         without sticking out into the pool and without any low penetration.</div>`,
     flags: { site: 1, foam: 1, shell: 1, indent: 1 },
     cam: () => state.coilWall === 'N'
-        ? { pos: [-32, 86, -44], tgt: [42, 94, 48] }
+        ? { pos: [-38, 86, -44], tgt: [18, 94, 48] }
         : { pos: [-44, 86, -32], tgt: [48, 94, 42] },
     labels: () => {
         const s = indentSpec(state.coilWall);
@@ -1058,7 +1079,7 @@ const STEPS = [
     title: 'Pour the Steps',
     html: () => `
         <p>The staircase is poured next, against the north wall, descending south along the
-        east wall — with the exact dimensions of the master model:</p>
+        west wall — with the exact dimensions of the master model:</p>
         <ul>
             <li><span class="dim">7 steps</span>, <span class="dim">36&Prime;</span> wide,
             <span class="dim">10&Prime;</span> treads, <span class="dim">7&frac12;&Prime;</span> rise
@@ -1098,7 +1119,7 @@ const STEPS = [
         ${state.coilWall === 'N' ? `
         <div class="callout">On the <strong>north wall</strong> the coil is a simple serpentine —
         straight runs right-to-left, turning back at each end, climbing row by row.</div>` : `
-        <div class="callout">On the <strong>east wall</strong> the void is triangular (the
+        <div class="callout">On the <strong>west wall</strong> the void is triangular (the
         stair soffit slopes down), so the coil can&rsquo;t be a plain rectangle. It&rsquo;s a
         custom-fabricated <span class="dim">&frac12;&Prime;</span> copper immersion heat
         exchanger (roughly <span class="dim">25&nbsp;m</span> of immersed pipe): hairpin runs
@@ -1115,7 +1136,7 @@ const STEPS = [
         : { pos: [-46, 72, -46], tgt: [47, 76, 26] },
     labels: () => state.coilWall === 'N'
         ? [['Heating coil — hidden under the steps', [6, 52, 42], true],
-           ['Pipes exit ABOVE the water line', [29, D.penY + 10, D.inR + 4], true],
+           ['Pipes exit ABOVE the water line', [17.5, D.penY + 10, D.inR + 4], true],
            ['Water level — 51″ deep', [-30, D.waterY + 5, 45]]]
         : [['Heating coil — follows the steps', [42, 52, 4], true],
            ['Pipes exit ABOVE the water line', [D.inR + 4, D.penY + 10, 42], true],
@@ -1223,6 +1244,7 @@ function renderUI() {
         b.onclick = () => goTo(i);
         stepList.appendChild(b);
     });
+    stepList.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
     const s = STEPS[state.step];
     stepContent.innerHTML =
         `<div class="step-num">Step ${state.step + 1} of ${STEPS.length}</div>
