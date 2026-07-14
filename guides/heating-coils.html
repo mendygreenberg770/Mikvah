@@ -409,7 +409,6 @@ const M = {
     granite: std(0x505050, 0.4),
     slab: std(0xb0b0b0, 0.5),
     copper: std(0xb87333, 0.35, { metalness: 0.6 }),
-    heater: std(0x37474f, 0.5),
     tiles: new THREE.MeshStandardMaterial({
         map: mosaicTexture(), roughness: 0.2, metalness: 0.1,
         side: THREE.DoubleSide, clippingPlanes: clipPlanes,
@@ -503,13 +502,12 @@ function buildSite() {
     const outer = realW + 2 * D.cradleWall;                    // 145
     const floorW = outer + 2 * D.floorExt;                     // 169
 
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), M.ground);
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -D.cradleFloorT - D.gravel - 1;
-    g.add(ground);
-
-    addBox(g, -floorW / 2 - 10, floorW / 2 + 10, -D.cradleFloorT - D.gravel, -D.cradleFloorT,
-        -floorW / 2 - 10, floorW / 2 + 10, M.gravel);
+    // room extents: walls sit 2-3' from the pool edge, ~5.5' on the entry
+    // (north) side. Outside them the model is a cut-away diorama.
+    const RW = 90, RN = 126;
+    addBox(g, -RW, RW, -D.cradleFloorT - D.gravel - 16, -D.cradleFloorT - D.gravel,
+        -RW, RN, M.ground);                                            // earth under everything
+    addBox(g, -88, 88, -D.cradleFloorT - D.gravel, -D.cradleFloorT, -88, 88, M.gravel);
     addBox(g, -floorW / 2, floorW / 2, -D.cradleFloorT, 0, -floorW / 2, floorW / 2, M.cradle);
 
     // cradle walls
@@ -537,11 +535,11 @@ function buildSite() {
     // the room: finished floor poured around the mikvah, flush with the rim,
     // so the pool reads as sunk into the building floor
     const open = (D.intW + 2 * D.wall) / 2 + D.foam;   // 60.5 — pool opening in the floor
-    const ext2 = 240, fB = D.cradleH, fT = D.intH;      // slab from cradle top up to rim
-    addBox(g, -ext2, ext2, fB, fT, open, ext2, M.roomFloor);
-    addBox(g, -ext2, ext2, fB, fT, -ext2, -open, M.roomFloor);
-    addBox(g, -ext2, -open, fB, fT, -open, open, M.roomFloor);
-    addBox(g, open, ext2, fB, fT, -open, open, M.roomFloor);
+    const fB = D.cradleH, fT = D.intH;                  // slab from cradle top up to rim
+    addBox(g, -RW, RW, fB, fT, open, RN, M.roomFloor);  // north strip — the wide entry side
+    addBox(g, -RW, RW, fB, fT, -RW, -open, M.roomFloor);
+    addBox(g, -RW, -open, fB, fT, -open, open, M.roomFloor);
+    addBox(g, open, RW, fB, fT, -open, open, M.roomFloor);
 
     // room walls — inward-facing planes (10' ceiling), so whichever side the
     // camera is on, the near wall is invisible and the far walls close the room
@@ -552,10 +550,11 @@ function buildSite() {
         m.position.set(pos[0], (fT + wallTop) / 2, pos[1]);
         g.add(m);
     };
-    mkRoomWall(2 * ext2, [0, ext2], Math.PI);       // north
-    mkRoomWall(2 * ext2, [0, -ext2], 0);            // south
-    mkRoomWall(2 * ext2, [-ext2, 0], Math.PI / 2);  // west
-    mkRoomWall(2 * ext2, [ext2, 0], -Math.PI / 2);  // east
+    const midZ = (RN - RW) / 2;
+    mkRoomWall(2 * RW, [0, RN], Math.PI);              // north — 5.5' from the pool
+    mkRoomWall(2 * RW, [0, -RW], 0);                   // south — 2.5' from the pool
+    mkRoomWall(RN + RW, [-RW, midZ], Math.PI / 2);     // west
+    mkRoomWall(RN + RW, [RW, midZ], -Math.PI / 2);     // east
     return g;
 }
 
@@ -593,16 +592,19 @@ function buildForms(wallSide) {
         addBox(g, -r + t, -r + t + 3, y, y + 3, -r + t + 3, r - t - 3, M.lumber);
         addBox(g, r - t - 3, r - t, y, y + 3, -r + t + 3, r - t - 3, M.lumber);
     }
-    // bor void form — a plywood box keeps the pit hollow during the pour
-    addBox(g, D.borMinX, D.borMaxX, D.borBottom, D.ledgeLevel, D.borMinZ, D.borMaxZ, M.plywood);
-    // the box hangs from lumber bridging over the pool — held from above,
-    // because the wet concrete would otherwise float it up
-    for (const bx of [8, 22, 36]) {
-        addBox(g, bx - 2, bx + 2, D.intH, D.intH + 6, -72, 72, M.lumber);           // bridge beams
-        for (const hz of [-28, 28]) {
-            addBox(g, bx - 2, bx + 2, D.ledgeLevel, D.intH, hz - 2, hz + 2, M.lumber); // hangers
-        }
-    }
+    // bor void form — an OPEN-TOP plywood box keeps the pit hollow during the
+    // pour. You can see inside it: the sides stop at the 12" bor-bottom line,
+    // NOT at the cradle floor — the bor's base gets poured underneath it.
+    const fb = D.borBottom, ft2 = D.ledgeLevel;
+    addBox(g, D.borMinX, D.borMaxX, fb, fb + 1.5, D.borMinZ, D.borMaxZ, M.plywood);          // bottom
+    addBox(g, D.borMinX, D.borMaxX, fb, ft2, D.borMaxZ - 1.5, D.borMaxZ, M.plywood);         // north side
+    addBox(g, D.borMinX, D.borMaxX, fb, ft2, D.borMinZ, D.borMinZ + 1.5, M.plywood);         // south side
+    addBox(g, D.borMinX, D.borMinX + 1.5, fb, ft2, D.borMinZ + 1.5, D.borMaxZ - 1.5, M.plywood); // west side
+    addBox(g, D.borMaxX - 1.5, D.borMaxX, fb, ft2, D.borMinZ + 1.5, D.borMaxZ - 1.5, M.plywood); // east side
+    // held from above by two 2x4s bridging the opening — one on each side —
+    // because the wet concrete would otherwise float the box up
+    addBox(g, 6, 10, D.intH, D.intH + 4, -72, 72, M.lumber);
+    addBox(g, 34, 38, D.intH, D.intH + 4, -72, 72, M.lumber);
     return g;
 }
 
@@ -785,10 +787,9 @@ function buildCoil(wallSide) {
             [s.riserB, 88, rec], [s.riserB, D.penY, rec]
         ];
         addPipe(g, pts, R, M.copper);
-        // through the wall, then up through the room floor into the heating unit
-        addPipe(g, [[s.riserA, D.penY, rec], [s.riserA, D.penY, 70], [s.riserA, 114, 70]], R, M.copper);
-        addPipe(g, [[s.riserB, D.penY, rec], [s.riserB, D.penY, 70], [s.riserB, 114, 70]], R, M.copper);
-        addBox(g, s.riserA - 5, s.riserB + 5, D.intH, D.intH + 14, 65, 78, M.heater);
+        // through the wall — from there they run on to the heating equipment
+        addPipe(g, [[s.riserA, D.penY, rec], [s.riserA, D.penY, 64]], R, M.copper);
+        addPipe(g, [[s.riserB, D.penY, rec], [s.riserB, D.penY, 64]], R, M.copper);
     } else {
         // east wall — the coil steps down with the staircase soffit
         pts = [
@@ -801,10 +802,9 @@ function buildCoil(wallSide) {
             [rec, 84, s.riserB], [rec, D.penY, s.riserB]
         ];
         addPipe(g, pts, R, M.copper);
-        // through the wall, then up through the room floor into the heating unit
-        addPipe(g, [[rec, D.penY, s.riserA], [70, D.penY, s.riserA], [70, 114, s.riserA]], R, M.copper);
-        addPipe(g, [[rec, D.penY, s.riserB], [70, D.penY, s.riserB], [70, 114, s.riserB]], R, M.copper);
-        addBox(g, 65, 78, D.intH, D.intH + 14, s.riserA - 5, s.riserB + 5, M.heater);
+        // through the wall — from there they run on to the heating equipment
+        addPipe(g, [[rec, D.penY, s.riserA], [64, D.penY, s.riserA]], R, M.copper);
+        addPipe(g, [[rec, D.penY, s.riserB], [64, D.penY, s.riserB]], R, M.copper);
     }
     return g;
 }
@@ -924,9 +924,12 @@ const STEPS = [
             <span class="dim">48&Prime;</span> on the thick half, and clearly
             <strong>further down</strong> — to the <span class="dim">42&Prime;</span> ledge
             line — on the bor half, where the floor goes all the way down.</li>
-            <li>A plywood <strong>form box</strong> keeps the bor pit hollow. It hangs from
-            lumber bridging over the pool — held from <em>above</em>, because the concrete
-            would float it upward.</li>
+            <li>An <strong>open-top plywood form box</strong> keeps the bor pit hollow —
+            look inside it: its sides stop at the <span class="dim">12&Prime;</span>
+            bor-bottom line, <em>not</em> at the cradle floor, since the bor&rsquo;s base
+            gets poured underneath it. Two <strong>2&times;4s</strong> bridge the opening —
+            one on each side — holding it from <em>above</em>, because the wet concrete
+            would otherwise float it up.</li>
         </ul>
         <div class="callout">The critical detail: a <strong>styrofoam block-out</strong>
         (pink) is fastened high on the ${wallName()}-wall form, right where the top of the
@@ -941,8 +944,8 @@ const STEPS = [
     labels: () => {
         const s = indentSpec(state.coilWall);
         const common = [
-            ['Bor void form — hung from above', [22, 30, 0]],
-            ['Bridge lumber holds it down', [22, 124, -50], true],
+            ['Open-top bor form — sides stop at 12″', [22, 26, 0], true],
+            ['Two 2×4s hold it from above', [22, 118, -56]],
             ['Interior wall forms', [-52, 118, -46]],
             ['Open — screeded to 48″ during the pour', [-26, 54, 0]]
         ];
