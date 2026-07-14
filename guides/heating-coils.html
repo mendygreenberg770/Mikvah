@@ -111,6 +111,13 @@ body {
 #nav button.primary:hover:not(:disabled) { background: var(--accent-dark); }
 #nav button:disabled { opacity: 0.4; cursor: default; }
 
+#buildStamp {
+    text-align: center;
+    font-size: 0.68em; color: #9aa3ae;
+    padding: 5px 10px 9px;
+    background: #fbfcfd;
+}
+
 /* ---------- VIEWPORT ---------- */
 #viewport { flex: 1; position: relative; height: 100vh; }
 #canvasHost { position: absolute; inset: 0; }
@@ -220,6 +227,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 2:05 PM ET</div>
     </aside>
 
     <main id="viewport">
