@@ -123,6 +123,13 @@ body {
 #nav button.primary:hover:not(:disabled) { background: var(--accent-dark); }
 #nav button:disabled { opacity: 0.4; cursor: default; }
 
+#disclaimer {
+    text-align: center;
+    font-size: 0.66em; color: #8a2f2a;
+    padding: 6px 14px 0;
+    background: #fbfcfd;
+    line-height: 1.45;
+}
 #buildStamp {
     text-align: center;
     font-size: 0.68em; color: #9aa3ae;
@@ -231,7 +238,14 @@ body {
     #stepContent h2 { font-size: 1.12em; margin-bottom: 8px; }
     #nav { padding: 10px 16px; }
     #nav button { padding: 9px 0; }
-    #buildStamp { padding: 3px 10px 6px; }
+    #disclaimer {
+    text-align: center;
+    font-size: 0.66em; color: #8a2f2a;
+    padding: 6px 14px 0;
+    background: #fbfcfd;
+    line-height: 1.45;
+}
+#buildStamp { padding: 3px 10px 6px; }
 }
 </style>
 <script type="importmap">
@@ -258,6 +272,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
+        <div id="disclaimer">Visual guide for understanding only &mdash; not construction documents. Confirm every detail with your Rov and an expert mikvah builder before building.</div>
         <div id="buildStamp">Updated: Jul 14, 2026 &middot; 11:05 PM ET</div>
     </aside>
 

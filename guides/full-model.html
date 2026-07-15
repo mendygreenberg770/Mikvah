@@ -160,6 +160,11 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
 #mhead .back:hover { text-decoration: underline; }
 #mhead h1 { margin: 6px 0 2px; font-size: 1.12em; font-weight: 700; letter-spacing: -0.01em; }
 #mhead .mtag { font-size: 0.74em; color: var(--muted); }
+#mdisclaimer {
+    font-size: 0.68em; color: #8a2f2a; line-height: 1.45;
+    padding: 8px 20px; border-bottom: 1px solid var(--line);
+    background: #fdf7f6;
+}
 #mpanelBody { flex: 1; overflow-y: auto; padding: 12px 14px 24px; }
 
 #mpanelBody .play {
@@ -210,6 +215,12 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     border: 1px solid var(--accent); background: #eaf2fa; color: var(--accent);
 }
 #mpanelBody .upd:hover { background: #d8e6f5; }
+#mpanelBody .note {
+    font-size: 0.72em; color: var(--muted); font-style: italic;
+    line-height: 1.45; margin: 6px 0 8px;
+    padding: 6px 9px; background: #f2f7fc; border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+}
 #mpanelBody .cut { margin: 8px 0; }
 #mpanelBody .cut-label { display: flex; justify-content: space-between; font-size: 0.78em; color: var(--muted); margin-bottom: 3px; }
 #mpanelBody .cut input[type=range] { width: 100%; accent-color: var(--accent); }
@@ -249,6 +260,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         <h1>Full Parametric 3D Model</h1>
         <div class="mtag">Defaults are an 8&prime;&times;8&prime; mikvah &mdash; every dimension is adjustable for bigger or smaller builds.</div>
     </header>
+    <div id="mdisclaimer">Visual guide for understanding only &mdash; not construction documents. Confirm every detail with your Rov and an expert mikvah builder before building.</div>
     <div id="mpanelBody"></div>
 </aside>
 <main id="viewport">
@@ -1518,8 +1530,8 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         await wait(800); vis.walls = true; build();
         await wait(500); vis.hlm = true; build();
         await wait(500); vis.foam = true; build();
-        await wait(800); vis.mikFloor = true; build();
-        await wait(800); vis.mikWalls = true; build();
+        // the mikvah floor and walls pour MONOLITHICALLY — one shot, together
+        await wait(800); vis.mikFloor = true; vis.mikWalls = true; build();
         
         if(floorBorWasOn) { await wait(600); vis.floorAboveBor = true; build(); }
         if(coverWasOn) { await wait(600); vis.borCover = true; build(); }
@@ -1706,9 +1718,17 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     const g7 = group('Show / hide');
     [['ground', 'Natural ground'], ['gravel', 'Gravel'], ['floor', 'Cradle floor'], ['keys', 'Keyways'],
      ['waterstop', 'Waterstop'], ['walls', 'Cradle walls'], ['hlm', 'HLM 5000'], ['foam', 'Foam'],
-     ['mikFloor', 'Mikvah floor'], ['mikWalls', 'Mikvah walls'], ['floorAboveBor', 'Floor above bor'],
-     ['stairs', 'Stairs'], ['tiles', 'Tiles (blue mosaic)'], ['waterBor', 'Water (bor)'],
-     ['waterMikvah', 'Water (mikvah 51\u201352\u2033)'], ['backfill', 'Backfill (buried)'], ['dims', 'Show dimensions']]
+     ['mikFloor', 'Mikvah floor'], ['mikWalls', 'Mikvah walls']]
+    .forEach(([k, label]) => checkField(g7, vis, k, label, build));
+    {
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = 'The mikvah floor and walls are poured monolithically \u2014 one shot, together. These two toggles exist only to help you see inside the model.';
+        g7.appendChild(note);
+    }
+    [['floorAboveBor', 'Floor above bor'], ['stairs', 'Stairs'], ['tiles', 'Tiles (blue mosaic)'],
+     ['waterBor', 'Water (bor)'], ['waterMikvah', 'Water (mikvah 51\u201352\u2033)'],
+     ['backfill', 'Backfill (buried)'], ['dims', 'Show dimensions']]
     .forEach(([k, label]) => checkField(g7, vis, k, label, k === 'dims' ? () => { updateDimVisibility(); build(); } : build));
 
     const g8 = group('Section cuts');
