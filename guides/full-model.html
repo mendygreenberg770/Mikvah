@@ -61,6 +61,14 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
 .legend-item { display: flex; align-items: center; font-weight: 500; }
 .swatch { width: 12px; height: 12px; margin-right: 7px; border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,0.15); flex-shrink: 0; }
 
+#hint {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: rgba(26,35,48,0.82); color: #fff;
+    font-size: 0.72em; font-weight: 500;
+    padding: 7px 13px; border-radius: 8px;
+    pointer-events: none; z-index: 10;
+}
+@media (max-width: 700px) { #hint { display: none; } }
 #stamp {
     position: absolute; bottom: 16px; right: 16px; z-index: 10;
     font-size: 0.72em; font-weight: 500; color: var(--muted);
@@ -150,6 +158,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
 </head>
 <body>
 <div id="loading">Loading Engine&hellip;</div>
+<div id="hint">Drag to orbit &middot; scroll to zoom &middot; right-drag to pan</div>
 <div id="stamp">Updated: Jul 14, 2026 &middot; 11:05 PM ET</div>
 <a id="back" href="../index.html">&larr; All Guides</a>
 <div id="info">
@@ -169,6 +178,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     <div class="legend-item"><div class="swatch" style="background:#222"></div>HLM 5000</div>
     <div class="legend-item"><div class="swatch" style="background:#ffcccc"></div>Foam</div>
     <div class="legend-item"><div class="swatch" style="background:#505050"></div>Bor Cover (Granite)</div>
+    <div class="legend-item"><div class="swatch" style="background:#b87333"></div>Heating Coils</div>
     <div class="legend-item"><div class="swatch" style="background:rgba(0, 150, 255, 0.6)"></div>Water</div>
 </div>
 
@@ -299,6 +309,8 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         keyIndentation: createMat(0x111111, 0.9),
         waterstop: createMat(0x0000ff, 0.4),
         hlm: createMat(0x222222, 0.2),
+        recessDark: createMat(0xb5b5b5, 0.7),
+        copper: new THREE.MeshStandardMaterial({ color: 0xb87333, roughness: 0.35, metalness: 0.6, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
         foam: createMat(0xffcccc, 0.9),
         cover: createMat(0xb0b0b0, 0.5), // Cement cover (Floor Above Bor)
         granite: createMat(0x505050, 0.4), // Bor Cover
@@ -380,6 +392,9 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         stairLandingWidth: 60, // Width (Left-Right span)
         stairLandingLen: 42,   // Length (Front-Back span)
 
+        // Heating coils
+        coilWall: 'Front wall', // 'Front wall' (straight serpentine) or 'Side wall' (follows the steps)
+
         // Toggles
         excludeFoam: true, // Default True
     };
@@ -391,6 +406,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         mikFloor: true, mikWalls: true, 
         tiles: true,
         stairs: true,
+        heatingCoils: true,
         floorAboveBor: true, borCover: true,
         waterBor: true,     // Default ON
         waterMikvah: true,  // Default ON
@@ -1087,6 +1103,98 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             );
         }
         
+
+        // 9b. HEATING COILS — installed after the pour. The recessed indent
+        // for the pipes is cast into the wall, so it's visible as soon as the
+        // walls exist; the coil hangs under the stairs and its pipes cross
+        // the wall above the 51-52" water line. Mirrors with Bor Placement.
+        if (vis.mikWalls) {
+            const rIn = params.mikIntWidth / 2;
+            const fIn = params.mikIntLength / 2;
+            const soffTop = (mH - params.stairFirstDrop) - params.stairRise;
+            const botZc = fIn - (params.stairCount - 1) * params.stairTread;
+            const botYc = (mH - params.stairFirstDrop - (params.stairCount - 1) * params.stairRise) - params.stairRise;
+            const slopeM = ((soffTop - botYc) / ((fIn - botZc) || 1)) || 0.75;
+            const penY = Math.min(mH - 4, mFH + 55.5);
+            const front = params.coilWall === 'Front wall';
+            const iyMin = soffTop - 7, iyMax = Math.min(mH - 2, penY + 3);
+
+            const mkMM = (x0, x1, y0, y1, z0, z1, mat) => {
+                const w = x1 - x0, hh = y1 - y0, ll = z1 - z0;
+                if (w <= 0.01 || hh <= 0.01 || ll <= 0.01) return;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, ll), mat);
+                m.position.set(x0 + w / 2, y0 + hh / 2, z0 + ll / 2);
+                mainGroup.add(m);
+            };
+            const addPipe = (pts, r, mat) => {
+                for (let i = 0; i < pts.length - 1; i++) {
+                    const a = new THREE.Vector3(...pts[i]), b = new THREE.Vector3(...pts[i + 1]);
+                    const d = b.clone().sub(a), len = d.length();
+                    if (len < 0.01) continue;
+                    const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 12), mat);
+                    c.position.copy(a).addScaledVector(d, 0.5);
+                    c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+                    mainGroup.add(c);
+                }
+                for (const pt of pts) {
+                    const sp = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), mat);
+                    sp.position.set(...pt);
+                    mainGroup.add(sp);
+                }
+            };
+
+            // the indent — near the open edge of the steps (front wall) or by
+            // the top of the steps (side wall)
+            const xc = rIn - params.stairLen + 6;
+            const zc = fIn - 6;
+            if (front) mkMM(xc - 4.5, xc + 4.5, iyMin, iyMax, fIn - 0.25, fIn + 0.05, materials.recessDark);
+            else mkMM(rIn - 0.25, rIn + 0.05, iyMin, iyMax, zc - 4.5, zc + 4.5, materials.recessDark);
+
+            if (vis.heatingCoils) {
+                const R = 0.8;
+                if (front) {
+                    const rA = xc - 2, rB = xc + 2;
+                    const face = fIn - 1.4, rec = fIn - 0.7, backP = fIn - 3.0;
+                    const xW = rIn - params.stairLen + 3, xE = rIn - 4;
+                    const top = iyMin + 2;
+                    const pts = [[rA, penY, rec], [rA, top, rec], [rA, top, face], [xE, top, face]];
+                    let y = top, end = 'E', guard = 0;
+                    while (y - 6 > mFH + 5 && guard++ < 20) {
+                        const from = end === 'E' ? xE : xW, to = end === 'E' ? xW : xE;
+                        y -= 6;
+                        pts.push([from, y, face], [to, y, face]);
+                        end = end === 'E' ? 'W' : 'E';
+                    }
+                    const last = pts[pts.length - 1];
+                    pts.push([last[0], last[1], backP], [last[0], top, backP], [rB, top, backP], [rB, top, rec], [rB, penY, rec]);
+                    addPipe(pts, R, materials.copper);
+                    addPipe([[rA, penY, rec], [rA, penY, fIn + mWT + 3]], R, materials.copper);
+                    addPipe([[rB, penY, rec], [rB, penY, fIn + mWT + 3]], R, materials.copper);
+                } else {
+                    const rA = zc - 2, rB = zc + 2;
+                    const face = rIn - 1.4, rec = rIn - 0.7, backP = rIn - 3.0;
+                    const zMinAt = yy => botZc + (yy + 3 - botYc) / slopeM;
+                    const start = soffTop - 13, zN = fIn - 4;
+                    const pts = [[rec, penY, rA], [rec, iyMin + 2, rA], [face, iyMin + 2, rA], [face, start, rA]];
+                    let lastY = start, guard = 0;
+                    for (let i = 0; i < 8 && guard++ < 20; i++) {
+                        const yT = start - i * 6, yB = yT - 3;
+                        if (yB < mFH + 4) break;
+                        const zS = Math.max(zMinAt(yT), botZc + 2);
+                        if (zS > zN - 6) break;
+                        if (i === 0) pts.push([face, yT, zS]);
+                        else pts.push([face, yT, zN], [face, yT, zS]);
+                        pts.push([face, yB, zS], [face, yB, zN]);
+                        lastY = yB;
+                    }
+                    pts.push([backP, lastY, zN], [backP, iyMin + 2, zN], [rec, iyMin + 2, zN], [rec, penY, zN]);
+                    addPipe(pts, R, materials.copper);
+                    addPipe([[rec, penY, rA], [rIn + mWT + 3, penY, rA]], R, materials.copper);
+                    addPipe([[rec, penY, zN], [rIn + mWT + 3, penY, zN]], R, materials.copper);
+                }
+            }
+        }
+
         // 10. BACKFILL
         if(vis.backfill) {
             const fillSize = 800;
@@ -1129,6 +1237,10 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         if(resetHeight) params.cradleDepth = params.mikIntHeight - 6;
         const calculatedBorLen = params.mikIntLength - (2 * params.ledgeWidth);
         if(calculatedBorLen > 0) params.borLength = calculatedBorLen;
+        // Depth from ledge is automatic: the bor bottom always sits 12" off
+        // the cradle floor, so the depth follows the floor height and ledge
+        // drop (e.g. drop 6" -> 2'6", drop 12" -> 2'0", drop 4" -> 2'8")
+        params.borDepth = Math.max(0, params.mikFloorHeight - params.ledgeDrop - 12);
         const volCuIn = params.borWidth * params.borLength * params.borDepth;
         const volGal = volCuIn / 231;
         const volLit = volGal * 3.78541;
@@ -1223,6 +1335,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         const coverWasOn = vis.borCover;
         const stairsWasOn = vis.stairs;
         const tilesWasOn = vis.tiles;
+        const coilsWasOn = vis.heatingCoils;
         
         // New flags to restore later if needed, though usually user wants them off to start anim
         vis.waterBor = false; 
@@ -1245,6 +1358,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         if(floorBorWasOn) { await wait(600); vis.floorAboveBor = true; build(); }
         if(coverWasOn) { await wait(600); vis.borCover = true; build(); }
         if(stairsWasOn) { await wait(800); vis.stairs = true; build(); }
+        if(coilsWasOn) { await wait(600); vis.heatingCoils = true; build(); }
         // Tiles animate last
         if(tilesWasOn) { await wait(800); vis.tiles = true; build(); }
         
@@ -1302,7 +1416,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     fBor.add(params, 'borSide', ['Right', 'Left']).name('Bor Placement').onChange(build);
     fBor.add(guiStrings, 'borWidth').name('Bor Width').onFinishChange(commitChanges);
     fBor.add(guiStrings, 'borLength').name('Bor Length (Auto)').disable(); 
-    fBor.add(guiStrings, 'borDepth').name('Depth from Ledge').onFinishChange(commitChanges);
+    fBor.add(guiStrings, 'borDepth').name('Depth from Ledge (Auto)').disable();
     fBor.add(guiStrings, 'ledgeWidth').name('Ledge Width').onFinishChange(commitChanges);
     fBor.add(guiStrings, 'ledgeDrop').name('Ledge Drop').onFinishChange(commitChanges);
     fBor.add({ update: commitChanges }, 'update').name('↻ UPDATE DIMENSIONS');
@@ -1353,8 +1467,13 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     fStairs.add(guiStrings, 'stairLandingWidth').name('Landing Width').onFinishChange(commitChanges);
     fStairs.add(guiStrings, 'stairLandingLen').name('Landing Length').onFinishChange(commitChanges);
 
-    // 9. Construction
-    const fVis = gui.addFolder('9. Construction');
+    // 9. Heating Coils
+    const fCoil = gui.addFolder('9. Heating Coils');
+    fCoil.add(vis, 'heatingCoils').name('Show Coils').onChange(build).listen();
+    fCoil.add(params, 'coilWall', ['Front wall', 'Side wall']).name('Coil Location').onChange(build);
+
+    // 10. Construction
+    const fVis = gui.addFolder('10. Construction');
     fVis.add({ play: runAnimation }, 'play').name('▶ Play Animation');
     fVis.add(vis, 'ground').name('Natural Ground').onChange(build).listen();
     fVis.add(vis, 'gravel').name('Gravel').onChange(build).listen();
@@ -1369,14 +1488,15 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     fVis.add(vis, 'floorAboveBor').name('Floor Above Bor').onChange(build).listen();
     fVis.add(vis, 'borCover').name('Bor Cover (Granite)').onChange(build).listen();
 fVis.add(vis, 'stairs').name('Stairs').onChange(build).listen();
+fVis.add(vis, 'heatingCoils').name('Heating Coils').onChange(build).listen();
 fVis.add(vis, 'tiles').name('Tiles (Blue Mosaic)').onChange(build).listen();
     fVis.add(vis, 'waterBor').name('Water (Bor)').onChange(build).listen(); // NEW
     fVis.add(vis, 'waterMikvah').name('Water (Mikvah 51–52″)').onChange(build).listen(); // NEW
     fVis.add(vis, 'backfill').name('Backfill (Buried)').onChange(build).listen();
     fVis.add(vis, 'dims').name('Show Dimensions').onChange(() => { updateDimVisibility(); build(); }).listen();
 
-    // 10. Section Cuts
-    const fCut = gui.addFolder('10. Section Cuts');
+    // 11. Section Cuts
+    const fCut = gui.addFolder('11. Section Cuts');
     const updateCuts = () => {
         clipPlanes[0].constant = clipParams.x; clipPlanes[1].constant = clipParams.nx;
         clipPlanes[2].constant = clipParams.z; clipPlanes[3].constant = clipParams.nz;
@@ -1405,6 +1525,7 @@ fVis.add(vis, 'tiles').name('Tiles (Blue Mosaic)').onChange(build).listen();
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
+    if (window.innerWidth < 700) gui.close();
     animate();
 </script>
 </body>
