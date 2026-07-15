@@ -2145,8 +2145,6 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             drop: mH - fd - mFH                                // rim→floor minus first drop
         };
     }
-    const solveN = m => Math.max(1, Math.round(m.drop / m.rise));
-
     // Options set params directly, so push params -> strings BEFORE commitChanges
     // (which parses strings -> params); otherwise stale strings clobber the fix.
     function commitP() { updateGuiStrings(); commitChanges(); }
@@ -2160,28 +2158,61 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
 
         if (Math.abs(m.gap) > 1.5) {
             const sig = 'gap' + Math.round(m.gap);
-            const N2 = solveN(m), rise2 = m.drop / N2;
-            const lastLen2 = Math.max(0, m.L - (N2 - 1) * m.tread);
-            const dL = (N2 - m.N) * m.tread;
+            // Every workable step count, scored by how sensible the result is:
+            // rise as close to 7.5" as possible (6-8" is the hard range, a hair
+            // over is only a small penalty), and a bottom step of at least 24".
+            // Best score goes first, so a 12" deepening leads with "add 1 step,
+            // rise 8.06" rather than jumping to 2 steps and a 16" bottom step.
+            const cands = [];
+            for (let n = Math.max(1, Math.floor(m.drop / 9.5)); n <= Math.ceil(m.drop / 5.5); n++) {
+                const rise = m.drop / n;
+                if (rise < 5.5 || rise > 9.5) continue;
+                const bottom = m.L - (n - 1) * m.tread;
+                if (bottom < 12) continue;
+                cands.push({ n, rise, bottom,
+                    score: Math.abs(rise - 7.5) * 3
+                        + Math.max(0, rise - 8) * 40 + Math.max(0, 6 - rise) * 40
+                        + Math.max(0, 24 - bottom) * 2 });
+            }
+            cands.sort((a, b) => a.score - b.score);
+            const stepOpts = cands.slice(0, 3).map(c => {
+                const d = c.n - m.N;
+                const label = d === 0 ? `Keep ${m.N} steps, adjust the rise`
+                    : d > 0 ? `Add ${d} step${d === 1 ? '' : 's'} \u2192 ${c.n} steps`
+                    : `Remove ${-d} step${d === -1 ? '' : 's'} \u2192 ${c.n} steps`;
+                const riseNote = c.rise > 8 ? (c.rise <= 8.25 ? ' \u26a0 a touch steep' : ' \u26a0 steep')
+                    : c.rise < 6 ? ' \u26a0 shallow' : '';
+                return opt(label,
+                    `Rise becomes ${fmtIn(c.rise)}${riseNote} \u00b7 bottom step ${fmtIn(c.bottom)}${c.bottom < 24 ? ' \u26a0 small' : ''}`,
+                    () => { params.stairCount = c.n; params.stairRise = c.rise; commitP(); },
+                    c.rise > 8 || c.rise < 6 || c.bottom < 24);
+            });
+            if (!stepOpts.length) stepOpts.push(opt(`Keep ${m.N} steps, adjust the rise`,
+                `Rise becomes ${fmtIn(m.drop / m.N)} \u26a0 outside 6\u20138\u2033`,
+                () => { params.stairRise = m.drop / m.N; commitP(); }, true));
+            // for the "and make it longer" combo, pick the added-step count with
+            // the nicest rise — ignore the current bottom-step limit, because the
+            // longer floor is exactly what buys the room for those treads
+            let best = null;
+            for (let n = m.N + 1; n <= m.N + 6; n++) {
+                const rise = m.drop / n;
+                if (rise < 5.5) break;
+                const s = Math.abs(rise - 7.5) + Math.max(0, rise - 8) * 10 + Math.max(0, 6 - rise) * 10;
+                if (!best || s < best.s) best = { n, rise, s };
+            }
+            const dL = (m.gap > 0 && best) ? (best.n - m.N) * m.tread : 0;
             issues.push({ sig,
                 title: m.gap > 0
                     ? `There\u2019s a ${fmtIn(m.gap)} gap under the stairs.`
                     : `The stairs sink ${fmtIn(-m.gap)} into the floor.`,
                 options: [
-                    opt(`${N2 > m.N ? 'Add' : N2 < m.N ? 'Remove' : 'Keep'} ${Math.abs(N2 - m.N) || ''} step${Math.abs(N2 - m.N) === 1 ? '' : 's'} \u2192 ${N2} steps`,
-                        `Rise becomes ${fmtIn(rise2)} \u00b7 bottom step ${fmtIn(lastLen2)}${lastLen2 < 24 ? ' \u26a0 small' : ''}`,
-                        () => { params.stairCount = N2; params.stairRise = rise2; commitP(); },
-                        rise2 < 6 || rise2 > 8),
-                    opt(`Keep ${m.N} steps, adjust the rise`,
-                        `Rise becomes ${fmtIn(m.drop / m.N)}${(m.drop / m.N) > 8 || (m.drop / m.N) < 6 ? ' \u26a0 outside 6\u20138\u2033' : ''}`,
-                        () => { params.stairRise = m.drop / m.N; commitP(); },
-                        (m.drop / m.N) > 8 || (m.drop / m.N) < 6),
+                    ...stepOpts,
                     m.gap > 0 ? opt('Raise the landing to absorb it',
                         `Landing becomes ${fmtIn(m.landingH + 0)} tall${m.landingH > 8 ? ' \u26a0 more than a comfortable step' : ''} (it already fills to the floor)`,
                         () => { acceptedIssues.add(sig); resolveIssues(); }, m.landingH > 8) : null,
-                    dL > 0 ? opt('Also make the mikvah longer',
-                        `Suggested +${fmtIn(dL)} so the new step fits and the bottom step stays ${fmtIn(m.lastLen)}`,
-                        v => { params.mikIntLength += (v === undefined ? dL : v); params.stairCount = N2; params.stairRise = rise2; commitP(); },
+                    dL > 0 ? opt(`Add ${best.n - m.N} step${best.n - m.N === 1 ? '' : 's'} AND make the mikvah longer`,
+                        `Suggested +${fmtIn(dL)} so the added step${best.n - m.N === 1 ? '' : 's'} fit and the bottom step stays ${fmtIn(m.lastLen)}`,
+                        v => { params.mikIntLength += (v === undefined ? dL : v); params.stairCount = best.n; params.stairRise = best.rise; commitP(); },
                         false, { def: dL }) : null,
                     accept(sig)
                 ].filter(Boolean) });
