@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mikvah Construction: Tiled Finish & Water</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -520,6 +521,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         waterstop: createMat(0x0000ff, 0.4),
         hlm: createMat(0x222222, 0.2),
         recessDark: createMat(0xb5b5b5, 0.7),
+        rebar: new THREE.MeshStandardMaterial({ color: 0x474c52, roughness: 0.55, metalness: 0.4, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
         copper: new THREE.MeshStandardMaterial({ color: 0xb87333, roughness: 0.35, metalness: 0.6, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
         foam: createMat(0xffcccc, 0.9),
         cover: createMat(0xb0b0b0, 0.5), // Cement cover (Floor Above Bor)
@@ -898,6 +900,62 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             addDim(new THREE.Vector3(-outerW/2, h+2, -outerL/2), new THREE.Vector3(-outerW/2 + wt, h+2, -outerL/2), `Wall`);
         }
 
+
+        // 6b. REBAR — buried in the concrete; the section cuts reveal it
+        {
+            const mkBar = (x0, x1, y0, y1, z0, z1) => {
+                const ww = x1 - x0, hh = y1 - y0, ll = z1 - z0;
+                if (ww <= 0 || hh <= 0 || ll <= 0) return;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(ww, hh, ll), materials.rebar);
+                m.position.set(x0 + ww / 2, y0 + hh / 2, z0 + ll / 2);
+                mainGroup.add(m);
+            };
+            const bb = 0.7;
+            if (vis.walls) {           // cradle wall cage
+                const c = (w + wt) / 2;
+                for (let p = -c + 4; p <= c - 4; p += 16) {
+                    for (const [bx, bz] of [[p, c], [p, -c], [-c, p], [c, p]]) {
+                        mkBar(bx - bb, bx + bb, 2, h - 2, bz - bb, bz + bb);
+                    }
+                }
+                for (let y = 12; y < h - 2; y += 24) {
+                    mkBar(-c - bb, c + bb, y, y + 0.8, c - bb, c + bb);
+                    mkBar(-c - bb, c + bb, y, y + 0.8, -c - bb, -c + bb);
+                    mkBar(-c - bb, -c + bb, y, y + 0.8, -c + bb, c - bb);
+                    mkBar(c - bb, c + bb, y, y + 0.8, -c + bb, c - bb);
+                }
+            }
+            if (vis.floor) {           // cradle floor mat
+                const e = floorW / 2 - 5;
+                for (let p = -e; p <= e; p += 20) {
+                    mkBar(-e, e, -8, -7.2, p - bb, p + bb);
+                    mkBar(p - bb, p + bb, -7.2, -6.4, -e, e);
+                }
+            }
+            if (vis.mikWalls) {        // mikvah wall cage
+                const inW = params.mikIntWidth / 2, inL = params.mikIntLength / 2;
+                const cx = inW + mWT / 2, cz = inL + mWT / 2;
+                for (let p = -inW + 2; p <= inW - 2; p += 12) {
+                    mkBar(p - bb, p + bb, 2, mH - 4, cz - bb, cz + bb);
+                    mkBar(p - bb, p + bb, 2, mH - 4, -cz - bb, -cz + bb);
+                }
+                for (let p = -inL + 2; p <= inL - 2; p += 12) {
+                    mkBar(cx - bb, cx + bb, 2, mH - 4, p - bb, p + bb);
+                    mkBar(-cx - bb, -cx + bb, 2, mH - 4, p - bb, p + bb);
+                }
+                for (let y = 12; y < mH - 4; y += 16) {
+                    mkBar(-cx - bb, cx + bb, y, y + 0.8, cz - bb, cz + bb);
+                    mkBar(-cx - bb, cx + bb, y, y + 0.8, -cz - bb, -cz + bb);
+                    mkBar(-cx - bb, -cx + bb, y, y + 0.8, -cz + bb, cz - bb);
+                    mkBar(cx - bb, cx + bb, y, y + 0.8, -cz + bb, cz - bb);
+                }
+            }
+            if (vis.mikFloor) {        // mikvah floor mat
+                const inW = params.mikIntWidth / 2 - 3, inL = params.mikIntLength / 2 - 3;
+                for (let p = -inL; p <= inL; p += 20) mkBar(-inW, inW, 6, 6.8, p - bb, p + bb);
+                for (let p = -inW; p <= inW; p += 20) mkBar(p - bb, p + bb, 6.8, 7.6, -inL, inL);
+            }
+        }
         // 7. HLM & Foam
         if(vis.hlm && vis.walls) {
             const t = 0.2;
@@ -1860,11 +1918,11 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         wrap.className = 'cut';
         wrap.innerHTML = `<div class="cut-label"><span>${label}</span><span class="val">off</span></div>`;
         const r = document.createElement('input');
-        r.type = 'range'; r.min = 0; r.max = 260; r.step = 1; r.value = 0;
+        r.type = 'range'; r.min = 0; r.max = 190; r.step = 1; r.value = 0;
         const val = wrap.querySelector('.val');
         r.addEventListener('input', () => {
             const d = +r.value;
-            clipParams[k] = d === 0 ? 2000 : 200 - d;
+            clipParams[k] = d === 0 ? 2000 : 100 - d;
             val.textContent = d === 0 ? 'off' : d + '\u2033';
             updateCuts();
         });
@@ -1893,9 +1951,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         { title: 'The Pour', h2: 'The Monolithic Pour',
           html: '<p>The mikvah itself: <b>all four walls and the floor poured in one shot</b>, monolithically — no cold joints below the water line. The thick half carries the pool; the other half drops to the <b>bor</b> with its ledge.</p><div class="callout">The recessed <b>indent</b> for the heating pipes is cast right into the wall during this pour — you can see the channel near where the stairs will land.</div>',
           flags: { ...BASE, mikFloor: 1, mikWalls: 1 },
-          cam: () => params.coilWall === 'Front wall'
-              ? { pos: [-30, 115, -30], tgt: [params.mikIntWidth / 2 - params.stairLen + 6, 90, params.mikIntLength / 2] }
-              : { pos: [-30, 115, -30], tgt: [params.mikIntWidth / 2, 90, params.mikIntLength / 2 - 6] } },
+          cam: { pos: [230, 300, 230], tgt: [0, 50, 0] } },
         { title: 'Floor Above Bor', h2: 'Floor Above the Bor + Cover',
           html: '<p>The floor is poured on top of the ledge, closing the bor except for the rabbeted access hole. The <b>granite cover</b> with its two holes drops in flush.</p>',
           flags: { ...BASE, mikFloor: 1, mikWalls: 1, floorAboveBor: 1, borCover: 1 },

@@ -597,6 +597,27 @@ function buildSite() {
     addBox(g, -iw, -iw + t, 0, D.cradleH, -iw, iw, M.hlm);
     addBox(g, iw - t, iw, 0, D.cradleH, -iw, iw, M.hlm);
 
+    // cradle rebar — buried in the cradle walls and floor; the section
+    // cuts reveal it
+    {
+        const c = 66.5, bb = 0.7;    // centerline of the cradle walls
+        for (let p = -64; p <= 64; p += 16) {
+            for (const [bx, bz] of [[p, c], [p, -c], [-c, p], [c, p]]) {
+                addBox(g, bx - bb, bx + bb, 2, D.cradleH - 2, bz - bb, bz + bb, M.rebar);
+            }
+        }
+        for (let y = 12; y < D.cradleH - 2; y += 24) {
+            addBox(g, -c - bb, c + bb, y, y + 0.8, c - bb, c + bb, M.rebar);
+            addBox(g, -c - bb, c + bb, y, y + 0.8, -c - bb, -c + bb, M.rebar);
+            addBox(g, -c - bb, -c + bb, y, y + 0.8, -c + bb, c - bb, M.rebar);
+            addBox(g, c - bb, c + bb, y, y + 0.8, -c + bb, c - bb, M.rebar);
+        }
+        for (let p = -80; p <= 80; p += 20) {           // cradle floor mat
+            addBox(g, -80, 80, -8, -7.2, p - bb, p + bb, M.rebar);
+            addBox(g, p - bb, p + bb, -7.2, -6.4, -80, 80, M.rebar);
+        }
+    }
+
     // waterstop ribbon at the base
     const wsIn = (D.intW + 2 * D.wall) / 2 + D.cradleWall / 2;
     addBox(g, -wsIn, wsIn, 0, 4, wsIn - 0.25, wsIn + 0.25, M.waterstop);
