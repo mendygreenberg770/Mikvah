@@ -2,6 +2,9 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mikvah",
   "compatibility_date": "2026-07-14",
+  "build": {
+    "command": "node scripts/stamp-deploy.mjs"
+  },
   "observability": {
     "enabled": true
   },
