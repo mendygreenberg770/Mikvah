@@ -145,6 +145,88 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     #info { left: 16px; transform: none; max-width: calc(100vw - 32px); top: 64px; }
     #legend { display: none; }
 }
+
+/* ---------- APP LAYOUT ---------- */
+#app { display: flex; height: 100vh; height: 100dvh; width: 100vw; }
+#mpanel {
+    width: 350px; min-width: 350px;
+    height: 100vh; height: 100dvh;
+    background: #fff; border-right: 1px solid var(--line);
+    display: flex; flex-direction: column;
+    z-index: 20;
+}
+#mhead { padding: 16px 20px 12px; border-bottom: 1px solid var(--line); }
+#mhead .back { font-size: 0.78em; font-weight: 600; color: var(--accent); text-decoration: none; }
+#mhead .back:hover { text-decoration: underline; }
+#mhead h1 { margin: 6px 0 2px; font-size: 1.12em; font-weight: 700; letter-spacing: -0.01em; }
+#mhead .mtag { font-size: 0.74em; color: var(--muted); }
+#mpanelBody { flex: 1; overflow-y: auto; padding: 12px 14px 24px; }
+
+#mpanelBody .play {
+    display: block; width: 100%;
+    margin: 2px 0 12px; padding: 11px 0;
+    font-family: inherit; font-size: 0.9em; font-weight: 600;
+    border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--accent); background: var(--accent); color: #fff;
+}
+#mpanelBody .play:hover { background: var(--accent-dark); }
+
+#mpanelBody details {
+    border: 1px solid var(--line); border-radius: 10px;
+    margin-bottom: 10px; background: #fbfcfd;
+    overflow: hidden;
+}
+#mpanelBody summary {
+    cursor: pointer; list-style: none;
+    padding: 10px 14px;
+    font-size: 0.86em; font-weight: 700; color: var(--ink);
+    background: #f0f4f8;
+    user-select: none;
+}
+#mpanelBody summary::before { content: '▸ '; color: var(--muted); font-size: 0.85em; }
+#mpanelBody details[open] summary::before { content: '▾ '; }
+#mpanelBody .grp-body { padding: 10px 14px 12px; }
+
+#mpanelBody .row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin: 7px 0; font-size: 0.82em; color: #38424f;
+}
+#mpanelBody .row > span { flex: 1; }
+#mpanelBody .row input[type=text], #mpanelBody .row input[type=number], #mpanelBody .row select {
+    width: 110px; padding: 6px 8px;
+    font-family: inherit; font-size: 1em; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px;
+    background: #fff; text-align: right;
+}
+#mpanelBody .row input:focus, #mpanelBody .row select:focus { outline: 2px solid #bcd4ea; }
+#mpanelBody .row.ro input, #mpanelBody .row input:disabled { background: #f0f2f5; color: var(--muted); }
+#mpanelBody .row.ro b { font-weight: 600; color: var(--muted); }
+#mpanelBody .row.chk { justify-content: flex-start; cursor: pointer; }
+#mpanelBody .row.chk input { accent-color: var(--accent); width: auto; }
+#mpanelBody .upd {
+    display: block; width: 100%; margin-top: 8px; padding: 8px 0;
+    font-family: inherit; font-size: 0.8em; font-weight: 600;
+    border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--accent); background: #eaf2fa; color: var(--accent);
+}
+#mpanelBody .upd:hover { background: #d8e6f5; }
+#mpanelBody .cut { margin: 8px 0; }
+#mpanelBody .cut-label { display: flex; justify-content: space-between; font-size: 0.78em; color: var(--muted); margin-bottom: 3px; }
+#mpanelBody .cut input[type=range] { width: 100%; accent-color: var(--accent); }
+
+#viewport { flex: 1; position: relative; height: 100vh; height: 100dvh; overflow: hidden; }
+#canvasHost { position: absolute; inset: 0; }
+#canvasHost canvas { display: block; }
+
+@media (max-width: 900px) {
+    #app { flex-direction: column; }
+    #mpanel { width: 100vw; min-width: 0; height: 48vh; height: 48dvh; order: 2; border-right: none; border-top: 1px solid var(--line); }
+    #viewport { height: 52vh; height: 52dvh; }
+    #mhead { padding: 8px 16px 6px; }
+    #mhead .mtag { display: none; }
+    #legend { display: none; }
+    #hint { display: none; }
+}
 </style>
 
 <script type="importmap">
@@ -160,8 +242,18 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
 <div id="loading">Loading Engine&hellip;</div>
 <div id="hint">Drag to orbit &middot; scroll to zoom &middot; right-drag to pan</div>
 <div id="stamp">Updated: Jul 14, 2026 &middot; 11:05 PM ET</div>
-<a id="back" href="../index.html">&larr; All Guides</a>
-<div id="info">
+<div id="app">
+<aside id="mpanel">
+    <header id="mhead">
+        <a class="back" href="../index.html">&larr; All Guides</a>
+        <h1>Full Parametric 3D Model</h1>
+        <div class="mtag">Defaults are an 8&prime;&times;8&prime; mikvah &mdash; every dimension is adjustable for bigger or smaller builds.</div>
+    </header>
+    <div id="mpanelBody"></div>
+</aside>
+<main id="viewport">
+<div id="canvasHost"></div>
+<div id="info" style="display:none">
     <div class="title">Mikvah Construction</div>
     <div class="subtitle">Tiled Interior • Bor Hatachton • Water Levels<br>Defaults are an 8&prime;&times;8&prime; mikvah — every dimension is adjustable for bigger or smaller builds.</div>
     <div class="instructions">Driven by mikvah interior dimensions</div>
@@ -182,10 +274,11 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     <div class="legend-item"><div class="swatch" style="background:rgba(0, 150, 255, 0.6)"></div>Water</div>
 </div>
 
+</main>
+</div>
 <script type="module">
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-    import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
     import { FontLoader } from 'three/addons/loaders/FontLoader.js';
     import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
@@ -230,9 +323,15 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
     camera.position.set(280, 350, 280);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    const host = document.getElementById('canvasHost');
     renderer.localClippingEnabled = true;
-    document.body.appendChild(renderer.domElement);
+    host.appendChild(renderer.domElement);
+    function sizeToHost() {
+        camera.aspect = host.clientWidth / host.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(host.clientWidth, host.clientHeight);
+    }
+    sizeToHost();
 
     // --- 3. LIGHTING (No Shadows) ---
     scene.add(new THREE.AmbientLight(0xffffff, 0.75));
@@ -1064,10 +1163,44 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             const fullW = realIntW + (2 * mWT);
             const sideL = realIntL;
             
-            mkMWall(fullW, mWT, 0, (realIntL + mWT)/2); // Front
+            // the coil wall gets a REAL recessed channel (the indent) cast
+            // into it, so it is built from pieces instead of a single box
+            const mkWallMM = (x0, x1, y0, y1, z0, z1, mat) => {
+                const ww = x1 - x0, hh = y1 - y0, ll = z1 - z0;
+                if (ww <= 0.01 || hh <= 0.01 || ll <= 0.01) return;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(ww, hh, ll), mat);
+                m.position.set(x0 + ww / 2, y0 + hh / 2, z0 + ll / 2);
+                mainGroup.add(m);
+            };
+            const soffTopW = (mH - params.stairFirstDrop) - params.stairRise;
+            const penYW = Math.min(mH - 4, mFH + 55.5);
+            const iy0 = soffTopW - 7, iy1 = Math.min(mH - 2, penYW + 3);
+            const frontCoil = params.coilWall === 'Front wall';
+            const rInW = realIntW / 2, fInW = realIntL / 2;
+            const xcW = rInW - params.stairLen + 6, zcW = fInW - 6;
+
+            if (frontCoil) {
+                const z0 = fInW, z1 = fInW + mWT;
+                mkWallMM(-fullW / 2, xcW - 4.5, 0, mH, z0, z1, materials.mikvahConcrete);
+                mkWallMM(xcW + 4.5, fullW / 2, 0, mH, z0, z1, materials.mikvahConcrete);
+                mkWallMM(xcW - 4.5, xcW + 4.5, 0, iy0, z0, z1, materials.mikvahConcrete);
+                mkWallMM(xcW - 4.5, xcW + 4.5, iy1, mH, z0, z1, materials.mikvahConcrete);
+                mkWallMM(xcW - 4.5, xcW + 4.5, iy0, iy1, z0 + 2.5, z1, materials.recessDark);
+            } else {
+                mkMWall(fullW, mWT, 0, (realIntL + mWT)/2); // Front
+            }
             mkMWall(fullW, mWT, 0, -(realIntL + mWT)/2); // Back
             mkMWall(mWT, sideL, -(realIntW + mWT)/2, 0); // Left
-            mkMWall(mWT, sideL, (realIntW + mWT)/2, 0); // Right
+            if (!frontCoil) {
+                const x0 = rInW, x1 = rInW + mWT;
+                mkWallMM(x0, x1, 0, mH, -sideL / 2, zcW - 4.5, materials.mikvahConcrete);
+                mkWallMM(x0, x1, 0, mH, zcW + 4.5, sideL / 2, materials.mikvahConcrete);
+                mkWallMM(x0, x1, 0, iy0, zcW - 4.5, zcW + 4.5, materials.mikvahConcrete);
+                mkWallMM(x0, x1, iy1, mH, zcW - 4.5, zcW + 4.5, materials.mikvahConcrete);
+                mkWallMM(x0 + 2.5, x1, iy0, iy1, zcW - 4.5, zcW + 4.5, materials.recessDark);
+            } else {
+                mkMWall(mWT, sideL, (realIntW + mWT)/2, 0); // Right
+            }
             
             // --- TILING: INTERIOR WALLS ---
             if(vis.tiles) {
@@ -1081,11 +1214,46 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                     m.position.set(x, tileY, z);
                     mainGroup.add(m);
                 };
-                const offset = 0.05; 
-                mkTileWall(realIntW, 0, 0, innerFront - offset, Math.PI); 
+                const offset = 0.05;
+                const mkTilePiece = (w, h, x, y, z, rotY) => {
+                    if (w <= 0.01 || h <= 0.01) return;
+                    const geo = new THREE.PlaneGeometry(w, h);
+                    scaleUVs(geo, w, h);
+                    const m = new THREE.Mesh(geo, materials.tiles);
+                    m.rotation.y = rotY;
+                    m.position.set(x, y, z);
+                    mainGroup.add(m);
+                };
+                // the coil wall is tiled everywhere EXCEPT under the stairs,
+                // so the indent stays visible to anyone peeking underneath
+                if (frontCoil) {
+                    const sx = rInW - params.stairLen;
+                    mkTilePiece(sx + realIntW / 2, tileH, (sx - realIntW / 2) / 2, tileY, innerFront - offset, Math.PI);
+                    mkTilePiece(params.stairLen, mH - soffTopW, rInW - params.stairLen / 2, (mH + soffTopW) / 2, innerFront - offset, Math.PI);
+                } else {
+                    mkTileWall(realIntW, 0, 0, innerFront - offset, Math.PI);
+                }
                 mkTileWall(realIntW, 0, 0, innerBack + offset, 0);
                 mkTileWall(realIntL, 0, innerLeft + offset, 0, Math.PI/2);
-                mkTileWall(realIntL, 0, innerRight - offset, 0, -Math.PI/2);
+                if (!frontCoil) {
+                    const botZt = fInW - (params.stairCount - 1) * params.stairTread;
+                    const geoW = botZt + realIntL / 2;
+                    const m1 = new THREE.PlaneGeometry(geoW, tileH);
+                    scaleUVs(m1, geoW, tileH);
+                    const p1 = new THREE.Mesh(m1, materials.tiles);
+                    p1.rotation.y = -Math.PI / 2;
+                    p1.position.set(innerRight - offset, tileY, (botZt - realIntL / 2) / 2);
+                    mainGroup.add(p1);
+                    const w2 = fInW - botZt;
+                    const m2 = new THREE.PlaneGeometry(w2, mH - soffTopW);
+                    scaleUVs(m2, w2, mH - soffTopW);
+                    const p2 = new THREE.Mesh(m2, materials.tiles);
+                    p2.rotation.y = -Math.PI / 2;
+                    p2.position.set(innerRight - offset, (mH + soffTopW) / 2, (botZt + fInW) / 2);
+                    mainGroup.add(p2);
+                } else {
+                    mkTileWall(realIntL, 0, innerRight - offset, 0, -Math.PI/2);
+                }
             }
 
             const rightDimX = outerW/2 + 40;
@@ -1143,18 +1311,16 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                 }
             };
 
-            // the indent — near the open edge of the steps (front wall) or by
-            // the top of the steps (side wall)
+            // the indent itself is cast into the wall (see the wall build);
+            // here we only place the pipes, with the risers inside the recess
             const xc = rIn - params.stairLen + 6;
             const zc = fIn - 6;
-            if (front) mkMM(xc - 4.5, xc + 4.5, iyMin, iyMax, fIn - 0.25, fIn + 0.05, materials.recessDark);
-            else mkMM(rIn - 0.25, rIn + 0.05, iyMin, iyMax, zc - 4.5, zc + 4.5, materials.recessDark);
 
             if (vis.heatingCoils) {
                 const R = 0.8;
                 if (front) {
                     const rA = xc - 2, rB = xc + 2;
-                    const face = fIn - 1.4, rec = fIn - 0.7, backP = fIn - 3.0;
+                    const face = fIn - 1.4, rec = fIn + 0.9, backP = fIn - 3.0;
                     const xW = rIn - params.stairLen + 3, xE = rIn - 4;
                     const top = iyMin + 2;
                     const pts = [[rA, penY, rec], [rA, top, rec], [rA, top, face], [xE, top, face]];
@@ -1172,7 +1338,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                     addPipe([[rB, penY, rec], [rB, penY, fIn + mWT + 3]], R, materials.copper);
                 } else {
                     const rA = zc - 2, rB = zc + 2;
-                    const face = rIn - 1.4, rec = rIn - 0.7, backP = rIn - 3.0;
+                    const face = rIn - 1.4, rec = rIn + 0.9, backP = rIn - 3.0;
                     const zMinAt = yy => botZc + (yy + 3 - botYc) / slopeM;
                     const start = soffTop - 13, zN = fIn - 4;
                     const pts = [[rec, penY, rA], [rec, iyMin + 2, rA], [face, iyMin + 2, rA], [face, start, rA]];
@@ -1325,7 +1491,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         guiStrings.stairLandingWidth = formatDisplay(params.stairLandingWidth);
         guiStrings.stairLandingLen = formatDisplay(params.stairLandingLen);
 
-        gui.controllersRecursive().forEach(c => c.updateDisplay());
+        refreshUI();
     }
 
     // --- 8. ANIMATION ---
@@ -1367,7 +1533,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         await wait(600); vis.waterMikvah = true; build();
 
         if(dimsWereOn) { await wait(800); vis.dims = true; build(); }
-        gui.controllersRecursive().forEach(c => c.updateDisplay());
+        refreshUI();
     }
 
     // --- 9. DIMENSION VISIBILITY ---
@@ -1377,136 +1543,210 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         else dimGroup.visible = vis.dims;
     }
 
-    // --- 10. GUI SETUP ---
-    const gui = new GUI({ title: 'Construction Controls', width: 340 });
+    // --- 10. CONTROL PANEL (guide-style sidebar) ---
+    const panelEl = document.getElementById('mpanelBody');
+    const F = {};
 
-    const fSet = gui.addFolder('1. Settings');
-    fSet.add({ mode: 'Ft/In' }, 'mode', ['Ft/In', 'Inches']).name('Units').onChange(v => {
-        currentUnitMode = v; updateGuiStrings(); build();
-    });
-
-    // 2. Mikvah Dimensions
-    const fMik = gui.addFolder('2. Mikvah Dimensions');
-    fMik.add(guiStrings, 'mikIntWidth').name('Interior Width').onFinishChange(commitChanges);
-    fMik.add(guiStrings, 'mikIntLength').name('Interior Length').onFinishChange(commitChanges);
-    fMik.add(guiStrings, 'mikIntHeight').name('Interior Height').onFinishChange(commitChanges);
-    fMik.add(guiStrings, 'mikWallThick').name('Wall Thickness').onFinishChange(commitChanges);
-    fMik.add(guiStrings, 'mikFloorHeight').name('Floor Height').onFinishChange(commitChanges);
-    fMik.add({ update: commitChanges }, 'update').name('↻ UPDATE DIMENSIONS');
-
-    // 3. Cradle 
-    const fCradle = gui.addFolder('3. Cradle (Calculated)');
-    fCradle.add(guiStrings, 'width').name('Cradle Width').disable().listen();
-    fCradle.add(guiStrings, 'length').name('Cradle Length').disable().listen();
-    fCradle.add(guiStrings, 'cradleDepth').name('Cradle Height').onFinishChange(commitChanges);
-    fCradle.add(guiStrings, 'wallThick').name('Cradle Wall Thick').onFinishChange(commitChanges);
-    fCradle.add(guiStrings, 'ext').name('Floor Protrusion').onFinishChange(commitChanges);
-    fCradle.add(guiStrings, 'gravel').name('Gravel Depth').onFinishChange(commitChanges);
-    
-    const foamCtrl = fCradle.add(guiStrings, 'foamThick').name('Foam Thickness').onFinishChange(commitChanges);
-    fCradle.add(params, 'excludeFoam').name('Exclude Foam from Ext. Dims').onChange(v => {
-        if(v) foamCtrl.disable(); else foamCtrl.enable();
-        commitChanges();
-    });
-    if(params.excludeFoam) foamCtrl.disable();
-    fCradle.add({ update: commitChanges }, 'update').name('↻ UPDATE DIMENSIONS');
-
-    // 4. Bor Specs
-    const fBor = gui.addFolder('4. Bor (Pit) Specs');
-    fBor.add(params, 'borSide', ['Right', 'Left']).name('Bor Placement').onChange(build);
-    fBor.add(guiStrings, 'borWidth').name('Bor Width').onFinishChange(commitChanges);
-    fBor.add(guiStrings, 'borLength').name('Bor Length (Auto)').disable(); 
-    fBor.add(guiStrings, 'borDepth').name('Depth from Ledge (Auto)').disable();
-    fBor.add(guiStrings, 'ledgeWidth').name('Ledge Width').onFinishChange(commitChanges);
-    fBor.add(guiStrings, 'ledgeDrop').name('Ledge Drop').onFinishChange(commitChanges);
-    fBor.add({ update: commitChanges }, 'update').name('↻ UPDATE DIMENSIONS');
-    
-    // 5. Bor Volume
-    const fVol = gui.addFolder('5. Bor Volume (To Ledge)');
-    fVol.add(volStats, 'cuIn').name('Cubic Inches').listen().disable();
-    fVol.add(volStats, 'gallons').name('Gallons').listen().disable();
-    fVol.add(volStats, 'liters').name('Liters').listen().disable();
-
-    // 6. Floor Hole
-        const fHole = gui.addFolder('6. Floor Hole');
-        fHole.add(guiStrings, 'holeWallDist').name('Offset from Wall').onFinishChange(commitChanges);
-        fHole.add(guiStrings, 'holeLedgeW').name('Hole Ledge Width').onFinishChange(commitChanges);
-        fHole.add(guiStrings, 'holeLedgeDrop').name('Ledge Drop Depth').onFinishChange(commitChanges);
-        fHole.add(guiStrings, 'holeWidth').name('Hole Width (X)').onFinishChange(commitChanges);
-        fHole.add(guiStrings, 'holeLength').name('Hole Length (Z)').onFinishChange(commitChanges);
-
-    // 7. Bor Cover
-    const fCover = gui.addFolder('7. Bor Cover (Granite)');
-    fCover.add(vis, 'borCover').name('Show Cover').onChange(build).listen();
-    fCover.add(guiStrings, 'coverHoleOffset').name('Side Offset').onFinishChange(commitChanges);
-
-    // 8. Stairs
-    const fStairs = gui.addFolder('8. Stairs');
-    fStairs.add(params, 'stairCount', 1, 20, 1).name('Number of Steps').onChange(build);
-    fStairs.add(guiStrings, 'stairLen').name('Step Width').onFinishChange(commitChanges);
-    fStairs.add(guiStrings, 'stairTread').name('Step Depth').onFinishChange(commitChanges);
-    fStairs.add(guiStrings, 'stairFirstDrop').name('First Step Drop').onFinishChange(commitChanges);
-    fStairs.add(guiStrings, 'stairRise').name('Standard Step Rise').onFinishChange(commitChanges);
-    fStairs.add(guiStrings, 'stairLastLen').name('Bottom Step Depth').onFinishChange(commitChanges);
-    fStairs.add(guiStrings, 'stairLastWidth').name('Bottom Step Width').onFinishChange(commitChanges);
-    
-    fStairs.add(params, 'stairLanding').name('Add Bottom Landing').onChange(v => {
-        if (v) {
-            params.stairFirstDrop = 7.0;
-            params.stairLen = 36;
-            params.stairTread = 10;
-            params.stairRise = 7.5;
-            params.stairLandingDrop = 4;
-            params.stairLandingWidth = params.mikIntWidth - params.stairLastWidth; 
+    function group(title, open = false) {
+        const d = document.createElement('details');
+        d.open = open;
+        const sum = document.createElement('summary');
+        sum.textContent = title;
+        d.appendChild(sum);
+        const body = document.createElement('div');
+        body.className = 'grp-body';
+        d.appendChild(body);
+        panelEl.appendChild(d);
+        return body;
+    }
+    function textField(body, key, label, ro = false) {
+        const row = document.createElement('label');
+        row.className = 'row' + (ro ? ' ro' : '');
+        row.innerHTML = `<span>${label}</span>`;
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        if (ro) inp.disabled = true;
+        inp.addEventListener('change', () => { guiStrings[key] = inp.value; commitChanges(); });
+        row.appendChild(inp);
+        body.appendChild(row);
+        F[key] = inp;
+        return inp;
+    }
+    function checkField(body, obj, key, label, onchange) {
+        const row = document.createElement('label');
+        row.className = 'row chk';
+        const inp = document.createElement('input');
+        inp.type = 'checkbox';
+        inp.checked = obj[key];
+        inp.addEventListener('change', () => { obj[key] = inp.checked; (onchange || build)(); });
+        const sp = document.createElement('span');
+        sp.textContent = label;
+        row.appendChild(inp);
+        row.appendChild(sp);
+        body.appendChild(row);
+        F['chk_' + key] = inp;
+        return inp;
+    }
+    function selectField(body, label, options, get, set) {
+        const row = document.createElement('label');
+        row.className = 'row';
+        row.innerHTML = `<span>${label}</span>`;
+        const sel = document.createElement('select');
+        for (const o of options) {
+            const op = document.createElement('option');
+            op.value = o; op.textContent = o;
+            sel.appendChild(op);
         }
-        updateGuiStrings();
-        build();
+        sel.value = get();
+        sel.addEventListener('change', () => set(sel.value));
+        row.appendChild(sel);
+        body.appendChild(row);
+        return sel;
+    }
+    function updBtn(body) {
+        const b = document.createElement('button');
+        b.className = 'upd';
+        b.innerHTML = '&#8635; Update dimensions';
+        b.addEventListener('click', commitChanges);
+        body.appendChild(b);
+    }
+    function readout(body, label) {
+        const row = document.createElement('div');
+        row.className = 'row ro';
+        row.innerHTML = `<span>${label}</span><b></b>`;
+        body.appendChild(row);
+        return row.querySelector('b');
+    }
+
+    const playBtn = document.createElement('button');
+    playBtn.className = 'play';
+    playBtn.innerHTML = '&#9654; Play build animation';
+    playBtn.addEventListener('click', runAnimation);
+    panelEl.appendChild(playBtn);
+
+    const g1 = group('Mikvah dimensions', true);
+    selectField(g1, 'Units', ['Ft/In', 'Inches'], () => currentUnitMode, v => { currentUnitMode = v; updateGuiStrings(); build(); });
+    textField(g1, 'mikIntWidth', 'Interior width');
+    textField(g1, 'mikIntLength', 'Interior length');
+    textField(g1, 'mikIntHeight', 'Interior height');
+    textField(g1, 'mikWallThick', 'Wall thickness');
+    textField(g1, 'mikFloorHeight', 'Floor height');
+    updBtn(g1);
+
+    const g2 = group('Cradle');
+    textField(g2, 'width', 'Cradle width (auto)', true);
+    textField(g2, 'length', 'Cradle length (auto)', true);
+    textField(g2, 'cradleDepth', 'Cradle height');
+    textField(g2, 'wallThick', 'Cradle wall thickness');
+    textField(g2, 'ext', 'Floor protrusion');
+    textField(g2, 'gravel', 'Gravel depth');
+    textField(g2, 'foamThick', 'Foam thickness');
+    checkField(g2, params, 'excludeFoam', 'Exclude foam from ext. dims', () => { F.foamThick.disabled = params.excludeFoam; commitChanges(); });
+    F.foamThick.disabled = params.excludeFoam;
+    updBtn(g2);
+
+    const g3 = group('Bor (pit)');
+    selectField(g3, 'Bor placement', ['Right', 'Left'], () => params.borSide, v => { params.borSide = v; build(); });
+    textField(g3, 'borWidth', 'Bor width');
+    textField(g3, 'borLength', 'Bor length (auto)', true);
+    textField(g3, 'borDepth', 'Depth from ledge (auto)', true);
+    textField(g3, 'ledgeWidth', 'Ledge width');
+    textField(g3, 'ledgeDrop', 'Ledge drop');
+    updBtn(g3);
+    const roCu = readout(g3, 'Volume — cubic inches');
+    const roGal = readout(g3, 'Volume — gallons');
+    const roLit = readout(g3, 'Volume — liters');
+
+    const g4 = group('Floor hole & cover');
+    checkField(g4, vis, 'borCover', 'Show granite cover');
+    textField(g4, 'holeWallDist', 'Offset from wall');
+    textField(g4, 'holeLedgeW', 'Hole ledge width');
+    textField(g4, 'holeLedgeDrop', 'Ledge drop depth');
+    textField(g4, 'holeWidth', 'Hole width');
+    textField(g4, 'holeLength', 'Hole length');
+    textField(g4, 'coverHoleOffset', 'Cover hole offset');
+    updBtn(g4);
+
+    const g5 = group('Stairs');
+    {
+        const row = document.createElement('label');
+        row.className = 'row';
+        row.innerHTML = '<span>Number of steps</span>';
+        const inp = document.createElement('input');
+        inp.type = 'number'; inp.min = 1; inp.max = 20; inp.step = 1;
+        inp.value = params.stairCount;
+        inp.addEventListener('change', () => { params.stairCount = Math.max(1, Math.min(20, +inp.value || 1)); build(); });
+        row.appendChild(inp);
+        g5.appendChild(row);
+        F.stairCount = inp;
+    }
+    textField(g5, 'stairLen', 'Step width');
+    textField(g5, 'stairTread', 'Step depth (tread)');
+    textField(g5, 'stairFirstDrop', 'First step drop');
+    textField(g5, 'stairRise', 'Step rise');
+    textField(g5, 'stairLastLen', 'Bottom step depth');
+    textField(g5, 'stairLastWidth', 'Bottom step width');
+    checkField(g5, params, 'stairLanding', 'Bottom landing', () => {
+        if (params.stairLanding) {
+            params.stairFirstDrop = 7.0; params.stairLen = 36; params.stairTread = 10;
+            params.stairRise = 7.5; params.stairLandingDrop = 4;
+            params.stairLandingWidth = params.mikIntWidth - params.stairLastWidth;
+        }
+        updateGuiStrings(); build();
     });
+    textField(g5, 'stairLandingDrop', 'Landing drop');
+    textField(g5, 'stairLandingWidth', 'Landing width');
+    textField(g5, 'stairLandingLen', 'Landing length');
+    updBtn(g5);
 
-    fStairs.add(guiStrings, 'stairLandingDrop').name('Landing Drop').onFinishChange(commitChanges);
-    fStairs.add(guiStrings, 'stairLandingWidth').name('Landing Width').onFinishChange(commitChanges);
-    fStairs.add(guiStrings, 'stairLandingLen').name('Landing Length').onFinishChange(commitChanges);
+    const g6 = group('Heating coils');
+    checkField(g6, vis, 'heatingCoils', 'Show coils');
+    selectField(g6, 'Coil location', ['Front wall', 'Side wall'], () => params.coilWall, v => { params.coilWall = v; build(); });
 
-    // 9. Heating Coils
-    const fCoil = gui.addFolder('9. Heating Coils');
-    fCoil.add(vis, 'heatingCoils').name('Show Coils').onChange(build).listen();
-    fCoil.add(params, 'coilWall', ['Front wall', 'Side wall']).name('Coil Location').onChange(build);
+    const g7 = group('Show / hide');
+    [['ground', 'Natural ground'], ['gravel', 'Gravel'], ['floor', 'Cradle floor'], ['keys', 'Keyways'],
+     ['waterstop', 'Waterstop'], ['walls', 'Cradle walls'], ['hlm', 'HLM 5000'], ['foam', 'Foam'],
+     ['mikFloor', 'Mikvah floor'], ['mikWalls', 'Mikvah walls'], ['floorAboveBor', 'Floor above bor'],
+     ['stairs', 'Stairs'], ['tiles', 'Tiles (blue mosaic)'], ['waterBor', 'Water (bor)'],
+     ['waterMikvah', 'Water (mikvah 51\u201352\u2033)'], ['backfill', 'Backfill (buried)'], ['dims', 'Show dimensions']]
+    .forEach(([k, label]) => checkField(g7, vis, k, label, k === 'dims' ? () => { updateDimVisibility(); build(); } : build));
 
-    // 10. Construction
-    const fVis = gui.addFolder('10. Construction');
-    fVis.add({ play: runAnimation }, 'play').name('▶ Play Animation');
-    fVis.add(vis, 'ground').name('Natural Ground').onChange(build).listen();
-    fVis.add(vis, 'gravel').name('Gravel').onChange(build).listen();
-    fVis.add(vis, 'floor').name('Cradle Floor').onChange(build).listen();
-    fVis.add(vis, 'keys').name('Keyways').onChange(build).listen();
-    fVis.add(vis, 'waterstop').name('Waterstop').onChange(build).listen();
-    fVis.add(vis, 'walls').name('Cradle Walls').onChange(build).listen();
-    fVis.add(vis, 'hlm').name('HLM 5000').onChange(build).listen();
-    fVis.add(vis, 'foam').name('Foam').onChange(build).listen();
-    fVis.add(vis, 'mikFloor').name('Mikvah Floor').onChange(build).listen();
-    fVis.add(vis, 'mikWalls').name('Mikvah Walls').onChange(build).listen();
-    fVis.add(vis, 'floorAboveBor').name('Floor Above Bor').onChange(build).listen();
-    fVis.add(vis, 'borCover').name('Bor Cover (Granite)').onChange(build).listen();
-fVis.add(vis, 'stairs').name('Stairs').onChange(build).listen();
-fVis.add(vis, 'heatingCoils').name('Heating Coils').onChange(build).listen();
-fVis.add(vis, 'tiles').name('Tiles (Blue Mosaic)').onChange(build).listen();
-    fVis.add(vis, 'waterBor').name('Water (Bor)').onChange(build).listen(); // NEW
-    fVis.add(vis, 'waterMikvah').name('Water (Mikvah 51–52″)').onChange(build).listen(); // NEW
-    fVis.add(vis, 'backfill').name('Backfill (Buried)').onChange(build).listen();
-    fVis.add(vis, 'dims').name('Show Dimensions').onChange(() => { updateDimVisibility(); build(); }).listen();
-
-    // 11. Section Cuts
-    const fCut = gui.addFolder('11. Section Cuts');
+    const g8 = group('Section cuts');
+    const clipParams = { x: 2000, nx: 2000, z: 2000, nz: 2000 };
     const updateCuts = () => {
-        clipPlanes[0].constant = clipParams.x; clipPlanes[1].constant = clipParams.nx;
-        clipPlanes[2].constant = clipParams.z; clipPlanes[3].constant = clipParams.nz;
+        clipPlanes[0].constant = clipParams.x;
+        clipPlanes[1].constant = clipParams.nx;
+        clipPlanes[2].constant = clipParams.z;
+        clipPlanes[3].constant = clipParams.nz;
         updateDimVisibility();
     };
-    const clipParams = { x: 2000, nx: 2000, z: 2000, nz: 2000 };
-    fCut.add(clipParams, 'x', -200, 2000).name('Right').onChange(updateCuts);
-    fCut.add(clipParams, 'nx', -200, 2000).name('Left').onChange(updateCuts);
-    fCut.add(clipParams, 'z', -200, 2000).name('Front').onChange(updateCuts);
-    fCut.add(clipParams, 'nz', -200, 2000).name('Back').onChange(updateCuts);
+    [['x', 'Right \u2192 left'], ['nx', 'Left \u2192 right'], ['z', 'Front \u2192 back'], ['nz', 'Back \u2192 front']]
+    .forEach(([k, label]) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'cut';
+        wrap.innerHTML = `<div class="cut-label"><span>${label}</span><span class="val">off</span></div>`;
+        const r = document.createElement('input');
+        r.type = 'range'; r.min = 0; r.max = 260; r.step = 1; r.value = 0;
+        const val = wrap.querySelector('.val');
+        r.addEventListener('input', () => {
+            const d = +r.value;
+            clipParams[k] = d === 0 ? 2000 : 200 - d;
+            val.textContent = d === 0 ? 'off' : d + '\u2033';
+            updateCuts();
+        });
+        wrap.appendChild(r);
+        g8.appendChild(wrap);
+    });
+
+    function refreshUI() {
+        for (const k in guiStrings) if (F[k]) F[k].value = guiStrings[k];
+        if (F.stairCount) F.stairCount.value = params.stairCount;
+        for (const k in vis) if (F['chk_' + k]) F['chk_' + k].checked = vis[k];
+        roCu.textContent = volStats.cuIn;
+        roGal.textContent = volStats.gallons;
+        roLit.textContent = volStats.liters;
+    }
+    refreshUI();
 
     // --- LOOP ---
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -1519,13 +1759,8 @@ fVis.add(vis, 'tiles').name('Tiles (Blue Mosaic)').onChange(build).listen();
         renderer.render(scene, camera);
     }
     
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+    window.addEventListener('resize', sizeToHost);
 
-    if (window.innerWidth < 700) gui.close();
     animate();
 </script>
 </body>
