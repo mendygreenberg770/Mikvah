@@ -246,7 +246,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 5:45 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 8:10 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -660,8 +660,9 @@ function buildForms(wallSide) {
     // by the same horizontal indent — so the ledge rings all four sides.
     // The thick floor pours against the lip's outer face at 48".
     addBox(g, D.borMinX, D.borMinX + 1.5, fb, ft2, D.borMinZ + 1.5, D.borMaxZ - 1.5, M.plywood);
-    addBox(g, D.ledgeMinX, D.ledgeMinX + 1.5, D.ledgeLevel, D.floorH, D.borMinZ, D.borMaxZ, M.lumber);
-    addBox(g, D.ledgeMinX + 1.4, D.borMinX, ft2, ft2 + 1.5, D.borMinZ, D.borMaxZ, M.plywood); // indent
+    // lip + indent run wall-to-wall so the corners are closed
+    addBox(g, D.ledgeMinX, D.ledgeMinX + 1.5, D.ledgeLevel, D.floorH, -r + t, r - t, M.lumber);
+    addBox(g, D.ledgeMinX + 1.4, D.borMinX, ft2, ft2 + 1.5, -r + t, r - t, M.plywood); // indent
     addBox(g, D.borMaxX - 1.5, D.borMaxX, fb, ft2, D.borMinZ + 1.5, D.borMaxZ - 1.5, M.plywood); // east side
     // held from above by two 2x4s bridging the opening — one on each side —
     // because the wet concrete would otherwise float the box up
