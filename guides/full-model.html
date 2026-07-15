@@ -165,7 +165,84 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     padding: 8px 20px; border-bottom: 1px solid var(--line);
     background: #fdf7f6;
 }
-#mpanelBody { flex: 1; overflow-y: auto; padding: 12px 14px 24px; }
+#stepChips {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    display: flex; flex-wrap: wrap; gap: 6px;
+}
+.step-chip {
+    border: 1px solid var(--line); background: #f7f9fb; color: var(--muted);
+    border-radius: 20px; font-size: 0.72em; font-weight: 600;
+    padding: 5px 11px; cursor: pointer; transition: all 0.15s;
+    font-family: inherit;
+}
+.step-chip:hover { border-color: var(--accent); color: var(--accent); }
+.step-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.step-chip.done { color: var(--accent-dark); background: #eaf2fa; border-color: #cfe0ef; }
+
+#mpanelBody { flex: 1; overflow-y: auto; padding: 14px 16px 20px; }
+#mpanelBody .step-num {
+    font-size: 0.72em; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 0.08em;
+}
+#mpanelBody h2 { margin: 4px 0 10px; font-size: 1.2em; letter-spacing: -0.01em; }
+#mpanelBody p { font-size: 0.86em; line-height: 1.6; color: #333c49; margin: 0 0 10px; }
+#mpanelBody .callout {
+    background: #f2f7fc; border-left: 3px solid var(--accent);
+    padding: 9px 12px; border-radius: 0 8px 8px 0;
+    font-size: 0.83em; line-height: 1.55; color: #2a3644; margin: 0 0 10px;
+}
+#mnav {
+    display: flex; gap: 10px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+    background: #fbfcfd;
+}
+#mnav button {
+    flex: 1; padding: 10px 0;
+    font-family: inherit; font-size: 0.88em; font-weight: 600;
+    border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+    transition: all 0.15s;
+}
+#mnav button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+#mnav button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+#mnav button.primary:hover:not(:disabled) { background: var(--accent-dark); }
+#mnav button:disabled { opacity: 0.4; cursor: default; }
+
+#voPanel {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 8px 28px rgba(15,30,50,0.10);
+    font-size: 0.8em;
+    min-width: 210px;
+    z-index: 10;
+}
+#voPanel .vo-title {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    width: 100%;
+    font-weight: 700; font-size: 0.92em; margin: 0 0 6px; color: var(--ink);
+    background: none; border: none; padding: 0; cursor: pointer;
+    font-family: inherit; text-align: left;
+}
+#voPanel .vo-title .chev { color: var(--muted); transition: transform 0.15s; }
+#voPanel.collapsed .vo-title { margin-bottom: 0; }
+#voPanel.collapsed .vo-title .chev { transform: rotate(-90deg); }
+#voPanel.collapsed #voBody { display: none; }
+#voPanel .row.chk {
+    display: flex; align-items: center; gap: 7px;
+    margin: 6px 0; cursor: pointer; color: #38424f; font-weight: 500;
+    font-size: 0.95em;
+}
+#voPanel .row.chk input { accent-color: var(--accent); }
+#voPanel .cut { margin: 7px 0; }
+#voPanel .cut-label { display: flex; justify-content: space-between; font-size: 0.82em; color: var(--muted); margin-bottom: 2px; }
+#voPanel .cut input[type=range] { width: 100%; accent-color: var(--accent); }
+#voPanel .group-label { font-size: 0.78em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 8px 0 2px; }
 
 #mpanelBody .play {
     display: block; width: 100%;
@@ -233,10 +310,23 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     #app { flex-direction: column; }
     #mpanel { width: 100vw; min-width: 0; height: 48vh; height: 48dvh; order: 2; border-right: none; border-top: 1px solid var(--line); }
     #viewport { height: 52vh; height: 52dvh; }
-    #mhead { padding: 8px 16px 6px; }
+    #mhead { padding: 8px 16px 4px; }
+    #mhead h1 { font-size: 0.95em; margin: 2px 0 0; }
     #mhead .mtag { display: none; }
+    #mdisclaimer { padding: 5px 16px; font-size: 0.62em; }
+    #stepChips {
+        flex-wrap: nowrap; overflow-x: auto;
+        padding: 8px 10px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    #stepChips::-webkit-scrollbar { display: none; }
+    .step-chip { flex: 0 0 auto; white-space: nowrap; }
+    #mpanelBody { padding: 12px 16px; }
+    #mnav { padding: 10px 16px; }
     #legend { display: none; }
     #hint { display: none; }
+    #voPanel { min-width: 0; padding: 9px 12px; max-width: 62vw; max-height: 44vh; max-height: 44dvh; overflow-y: auto; }
 }
 </style>
 
@@ -260,11 +350,20 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         <h1>Full Parametric 3D Model</h1>
         <div class="mtag">Defaults are an 8&prime;&times;8&prime; mikvah &mdash; every dimension is adjustable for bigger or smaller builds.</div>
     </header>
+    <div id="stepChips"></div>
     <div id="mdisclaimer">Visual guide for understanding only &mdash; not construction documents. Confirm every detail with your Rov and an expert mikvah builder before building.</div>
     <div id="mpanelBody"></div>
+    <div id="mnav">
+        <button id="mPrev">&larr; Previous</button>
+        <button id="mNext" class="primary">Next &rarr;</button>
+    </div>
 </aside>
 <main id="viewport">
 <div id="canvasHost"></div>
+<div id="voPanel">
+    <button id="voToggle" class="vo-title">View Options <span class="chev">&#9662;</span></button>
+    <div id="voBody"></div>
+</div>
 <div id="info" style="display:none">
     <div class="title">Mikvah Construction</div>
     <div class="subtitle">Tiled Interior • Bor Hatachton • Water Levels<br>Defaults are an 8&prime;&times;8&prime; mikvah — every dimension is adjustable for bigger or smaller builds.</div>
@@ -1555,11 +1654,10 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         else dimGroup.visible = vis.dims;
     }
 
-    // --- 10. CONTROL PANEL (guide-style sidebar) ---
-    const panelEl = document.getElementById('mpanelBody');
+    // --- 10. STEP-BY-STEP PANEL (uniform with the heating-coils guide) ---
     const F = {};
 
-    function group(title, open = false) {
+    function group(parent, title, open = false) {
         const d = document.createElement('details');
         d.open = open;
         const sum = document.createElement('summary');
@@ -1568,7 +1666,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         const body = document.createElement('div');
         body.className = 'grp-body';
         d.appendChild(body);
-        panelEl.appendChild(d);
+        parent.appendChild(d);
         return body;
     }
     function textField(body, key, label, ro = false) {
@@ -1630,13 +1728,16 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         return row.querySelector('b');
     }
 
-    const playBtn = document.createElement('button');
-    playBtn.className = 'play';
-    playBtn.innerHTML = '&#9654; Play build animation';
-    playBtn.addEventListener('click', runAnimation);
-    panelEl.appendChild(playBtn);
-
-    const g1 = group('Mikvah dimensions', true);
+    // ------- persistent widgets, mounted into steps on demand -------
+    const dimsWrap = document.createElement('div');
+    {
+        const b = document.createElement('button');
+        b.className = 'upd';
+        b.textContent = 'Reset everything to the 8\u2032\u00d78\u2032 defaults';
+        b.addEventListener('click', () => location.reload());
+        dimsWrap.appendChild(b);
+    }
+    const g1 = group(dimsWrap, 'Mikvah dimensions', true);
     selectField(g1, 'Units', ['Ft/In', 'Inches'], () => currentUnitMode, v => { currentUnitMode = v; updateGuiStrings(); build(); });
     textField(g1, 'mikIntWidth', 'Interior width');
     textField(g1, 'mikIntLength', 'Interior length');
@@ -1645,7 +1746,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     textField(g1, 'mikFloorHeight', 'Floor height');
     updBtn(g1);
 
-    const g2 = group('Cradle');
+    const g2 = group(dimsWrap, 'Cradle');
     textField(g2, 'width', 'Cradle width (auto)', true);
     textField(g2, 'length', 'Cradle length (auto)', true);
     textField(g2, 'cradleDepth', 'Cradle height');
@@ -1657,7 +1758,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     F.foamThick.disabled = params.excludeFoam;
     updBtn(g2);
 
-    const g3 = group('Bor (pit)');
+    const g3 = group(dimsWrap, 'Bor (pit)');
     selectField(g3, 'Bor placement', ['Right', 'Left'], () => params.borSide, v => { params.borSide = v; build(); });
     textField(g3, 'borWidth', 'Bor width');
     textField(g3, 'borLength', 'Bor length (auto)', true);
@@ -1669,8 +1770,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     const roGal = readout(g3, 'Volume — gallons');
     const roLit = readout(g3, 'Volume — liters');
 
-    const g4 = group('Floor hole & cover');
-    checkField(g4, vis, 'borCover', 'Show granite cover');
+    const g4 = group(dimsWrap, 'Floor hole & cover');
     textField(g4, 'holeWallDist', 'Offset from wall');
     textField(g4, 'holeLedgeW', 'Hole ledge width');
     textField(g4, 'holeLedgeDrop', 'Ledge drop depth');
@@ -1679,7 +1779,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     textField(g4, 'coverHoleOffset', 'Cover hole offset');
     updBtn(g4);
 
-    const g5 = group('Stairs');
+    const g5 = group(dimsWrap, 'Stairs');
     {
         const row = document.createElement('label');
         row.className = 'row';
@@ -1711,27 +1811,41 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     textField(g5, 'stairLandingLen', 'Landing length');
     updBtn(g5);
 
-    const g6 = group('Heating coils');
-    checkField(g6, vis, 'heatingCoils', 'Show coils');
-    selectField(g6, 'Coil location', ['Front wall', 'Side wall'], () => params.coilWall, v => { params.coilWall = v; build(); });
+    const coilWrap = document.createElement('div');
+    selectField(coilWrap, 'Coil location', ['Front wall', 'Side wall'], () => params.coilWall, v => { params.coilWall = v; build(); });
 
-    const g7 = group('Show / hide');
+    const exploreWrap = document.createElement('div');
+    {
+        const b = document.createElement('button');
+        b.className = 'play';
+        b.innerHTML = '&#9654; Play build animation';
+        b.addEventListener('click', runAnimation);
+        exploreWrap.appendChild(b);
+    }
     [['ground', 'Natural ground'], ['gravel', 'Gravel'], ['floor', 'Cradle floor'], ['keys', 'Keyways'],
      ['waterstop', 'Waterstop'], ['walls', 'Cradle walls'], ['hlm', 'HLM 5000'], ['foam', 'Foam'],
      ['mikFloor', 'Mikvah floor'], ['mikWalls', 'Mikvah walls']]
-    .forEach(([k, label]) => checkField(g7, vis, k, label, build));
+    .forEach(([k, label]) => checkField(exploreWrap, vis, k, label, build));
     {
         const note = document.createElement('div');
         note.className = 'note';
         note.textContent = 'The mikvah floor and walls are poured monolithically \u2014 one shot, together. These two toggles exist only to help you see inside the model.';
-        g7.appendChild(note);
+        exploreWrap.appendChild(note);
     }
-    [['floorAboveBor', 'Floor above bor'], ['stairs', 'Stairs'], ['tiles', 'Tiles (blue mosaic)'],
-     ['waterBor', 'Water (bor)'], ['waterMikvah', 'Water (mikvah 51\u201352\u2033)'],
-     ['backfill', 'Backfill (buried)'], ['dims', 'Show dimensions']]
-    .forEach(([k, label]) => checkField(g7, vis, k, label, k === 'dims' ? () => { updateDimVisibility(); build(); } : build));
+    [['floorAboveBor', 'Floor above bor'], ['borCover', 'Bor cover (granite)'], ['stairs', 'Stairs'],
+     ['heatingCoils', 'Heating coils'], ['tiles', 'Tiles (blue mosaic)'], ['waterBor', 'Water (bor)'],
+     ['waterMikvah', 'Water (mikvah 51\u201352\u2033)'], ['backfill', 'Backfill (buried)']]
+    .forEach(([k, label]) => checkField(exploreWrap, vis, k, label, build));
 
-    const g8 = group('Section cuts');
+    // ------- floating View Options: dimensions toggle + section cuts -------
+    const voBody = document.getElementById('voBody');
+    checkField(voBody, vis, 'dims', 'Show dimensions', () => { updateDimVisibility(); build(); });
+    {
+        const gl = document.createElement('div');
+        gl.className = 'group-label';
+        gl.textContent = 'Section cuts';
+        voBody.appendChild(gl);
+    }
     const clipParams = { x: 2000, nx: 2000, z: 2000, nz: 2000 };
     const updateCuts = () => {
         clipPlanes[0].constant = clipParams.x;
@@ -1755,8 +1869,113 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             updateCuts();
         });
         wrap.appendChild(r);
-        g8.appendChild(wrap);
+        voBody.appendChild(wrap);
     });
+    const voPanel = document.getElementById('voPanel');
+    document.getElementById('voToggle').addEventListener('click', () => voPanel.classList.toggle('collapsed'));
+    if (window.innerWidth <= 900) voPanel.classList.add('collapsed');
+
+    // ------- steps -------
+    const ALL_ON = { ground: 1, gravel: 1, floor: 1, keys: 1, waterstop: 1, walls: 1, hlm: 1, foam: 1,
+        mikFloor: 1, mikWalls: 1, floorAboveBor: 1, borCover: 1, stairs: 1, heatingCoils: 1,
+        tiles: 1, waterBor: 1, waterMikvah: 1 };
+    const BASE = { ground: 1, gravel: 1, floor: 1, keys: 1, waterstop: 1, walls: 1, hlm: 1, foam: 1 };
+
+    const MSTEPS = [
+        { title: 'Dimensions', h2: 'Set the Dimensions',
+          html: '<p>Start with the defaults — an <b>8\u2032 \u00d7 8\u2032 mikvah</b> — or edit any value below. Everything downstream recalculates automatically (cradle size, bor length, depth from ledge, volume).</p><p>The finished mikvah is shown so you can see your changes live. Then press <b>Next</b> to walk through how it gets built.</p>',
+          flags: ALL_ON, mount: dimsWrap,
+          cam: { pos: [280, 350, 280], tgt: [0, 40, 0] } },
+        { title: 'Cradle', h2: 'The Cradle',
+          html: '<p>A reinforced concrete tub — floor and walls on a gravel bed — with a <b>waterstop</b> ribbon at the base joint, <b>HLM 5000</b> waterproofing on the walls, and a \u00bd\u2033 <b>foam liner</b> separating the mikvah\u2019s concrete from the cradle: another layer of protection against leaks.</p>',
+          flags: BASE,
+          cam: { pos: [220, 300, 220], tgt: [0, 30, 0] } },
+        { title: 'The Pour', h2: 'The Monolithic Pour',
+          html: '<p>The mikvah itself: <b>all four walls and the floor poured in one shot</b>, monolithically — no cold joints below the water line. The thick half carries the pool; the other half drops to the <b>bor</b> with its ledge.</p><div class="callout">The recessed <b>indent</b> for the heating pipes is cast right into the wall during this pour — you can see the channel near where the stairs will land.</div>',
+          flags: { ...BASE, mikFloor: 1, mikWalls: 1 },
+          cam: () => params.coilWall === 'Front wall'
+              ? { pos: [-30, 115, -30], tgt: [params.mikIntWidth / 2 - params.stairLen + 6, 90, params.mikIntLength / 2] }
+              : { pos: [-30, 115, -30], tgt: [params.mikIntWidth / 2, 90, params.mikIntLength / 2 - 6] } },
+        { title: 'Floor Above Bor', h2: 'Floor Above the Bor + Cover',
+          html: '<p>The floor is poured on top of the ledge, closing the bor except for the rabbeted access hole. The <b>granite cover</b> with its two holes drops in flush.</p>',
+          flags: { ...BASE, mikFloor: 1, mikWalls: 1, floorAboveBor: 1, borCover: 1 },
+          cam: { pos: [110, 290, -85], tgt: [25, 45, 25] } },
+        { title: 'Stairs', h2: 'Pour the Steps',
+          html: '<p>The staircase is poured next. The flight is a sloped slab, so there\u2019s an <b>open void underneath</b> — exactly where the heating coil will hide.</p>',
+          flags: { ...BASE, mikFloor: 1, mikWalls: 1, floorAboveBor: 1, borCover: 1, stairs: 1 },
+          cam: { pos: [-150, 290, -130], tgt: [20, 60, 10] } },
+        { title: 'Heating Coils', h2: 'Install the Heating Coils',
+          html: '<p>The coil hangs in the void under the steps. Its pipes climb the cast-in <b>indent</b> and cross the wall <b>above the 51\u201352\u2033 water line</b> — no penetration below the water, and the indent stays inspectable.</p><p>For the full step-by-step explanation, see the <a href="heating-coils.html">Hidden Heating Coils guide</a>.</p>',
+          flags: { ...BASE, mikFloor: 1, mikWalls: 1, floorAboveBor: 1, borCover: 1, stairs: 1, heatingCoils: 1 },
+          mount: coilWrap,
+          cam: () => params.coilWall === 'Front wall'
+              ? { pos: [-38, 78, -40], tgt: [params.mikIntWidth / 2 - params.stairLen + 6, 75, params.mikIntLength / 2 - 2] }
+              : { pos: [-40, 78, -38], tgt: [params.mikIntWidth / 2 - 2, 75, params.mikIntLength / 2 - 10] } },
+        { title: 'Tile & Fill', h2: 'Tile, Then Fill With Water',
+          html: '<p>Blue mosaic on the floor, walls, and stairs — then the mikvah fills to its <b>51\u201352\u2033</b> working depth, and the bor fills through the cover holes.</p>',
+          flags: ALL_ON,
+          cam: { pos: [190, 170, 200], tgt: [0, 70, 0] } },
+        { title: 'Explore', h2: 'Explore Freely',
+          html: '<p>Play the full build animation, or show and hide any element to understand how the pieces fit. Use the <b>View Options</b> panel (top right) for dimensions and section cuts.</p>',
+          keepVis: true, mount: exploreWrap,
+          cam: null }
+    ];
+
+    let mStep = 0;
+    const chipsEl = document.getElementById('stepChips');
+    const bodyEl = document.getElementById('mpanelBody');
+    const prevBtn = document.getElementById('mPrev');
+    const nextBtn = document.getElementById('mNext');
+
+    function renderStep() {
+        chipsEl.innerHTML = '';
+        MSTEPS.forEach((st, i) => {
+            const b = document.createElement('button');
+            b.className = 'step-chip' + (i === mStep ? ' active' : i < mStep ? ' done' : '');
+            b.textContent = (i + 1) + '. ' + st.title;
+            b.addEventListener('click', () => goToStep(i));
+            chipsEl.appendChild(b);
+        });
+        chipsEl.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+        const st = MSTEPS[mStep];
+        bodyEl.innerHTML = `<div class="step-num">Step ${mStep + 1} of ${MSTEPS.length}</div><h2>${st.h2}</h2>${st.html}`;
+        if (st.mount) bodyEl.appendChild(st.mount);
+        bodyEl.scrollTop = 0;
+        prevBtn.disabled = mStep === 0;
+        nextBtn.disabled = mStep === MSTEPS.length - 1;
+    }
+    function goToStep(i) {
+        mStep = Math.max(0, Math.min(MSTEPS.length - 1, i));
+        const st = MSTEPS[mStep];
+        if (!st.keepVis && st.flags) {
+            const keepDims = vis.dims;
+            Object.keys(vis).forEach(k => vis[k] = !!st.flags[k]);
+            vis.dims = keepDims;
+        } else if (st.keepVis) {
+            Object.keys(ALL_ON).forEach(k => vis[k] = true);
+        }
+        renderStep();
+        refreshUI();
+        build();
+        if (st.cam) flyTo(typeof st.cam === 'function' ? st.cam() : st.cam);
+    }
+    prevBtn.addEventListener('click', () => goToStep(mStep - 1));
+    nextBtn.addEventListener('click', () => goToStep(mStep + 1));
+    document.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        if (e.key === 'ArrowRight') goToStep(mStep + 1);
+        if (e.key === 'ArrowLeft') goToStep(mStep - 1);
+    });
+
+    // camera fly-to (time-based, like the guide)
+    let camAnim = null;
+    function flyTo(spec) {
+        camAnim = {
+            start: performance.now(), duration: 900,
+            fromPos: camera.position.clone(), toPos: new THREE.Vector3(...spec.pos),
+            fromTgt: controls.target.clone(), toTgt: new THREE.Vector3(...spec.tgt)
+        };
+    }
 
     function refreshUI() {
         for (const k in guiStrings) if (F[k]) F[k].value = guiStrings[k];
@@ -1766,7 +1985,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         roGal.textContent = volStats.gallons;
         roLit.textContent = volStats.liters;
     }
-    refreshUI();
+    setTimeout(() => goToStep(0), 0);   // controls are created just below
 
     // --- LOOP ---
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -1774,6 +1993,13 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
 
     function animate() {
         requestAnimationFrame(animate);
+        if (camAnim) {
+            const t = Math.min((performance.now() - camAnim.start) / camAnim.duration, 1);
+            const e = 1 - Math.pow(1 - t, 3);
+            camera.position.lerpVectors(camAnim.fromPos, camAnim.toPos, e);
+            controls.target.lerpVectors(camAnim.fromTgt, camAnim.toTgt, e);
+            if (t >= 1) camAnim = null;
+        }
         controls.update();
         labels.forEach(l => l.quaternion.copy(camera.quaternion));
         renderer.render(scene, camera);

@@ -310,7 +310,7 @@ body {
             <div class="legend-item"><div class="swatch" style="background:#9e9e9e"></div>Cradle Concrete</div>
             <div class="legend-item"><div class="swatch" style="background:#cfcfcf"></div>Mikvah Concrete</div>
             <div class="legend-item"><div class="swatch" style="background:#c89b5f"></div>Formwork</div>
-            <div class="legend-item"><div class="swatch" style="background:#ff8fa3"></div>Styrofoam Block-out</div>
+            <div class="legend-item"><div class="swatch" style="background:#f23d75"></div>Styrofoam Block-out</div>
             <div class="legend-item"><div class="swatch" style="background:#b87333"></div>Heating Coil / Pipes</div>
             <div class="legend-item"><div class="swatch" style="background:#505050"></div>Bor Cover (Granite)</div>
             <div class="legend-item"><div class="swatch" style="background:linear-gradient(45deg,#4da6ff,#0059b3)"></div>Mosaic Tile</div>
@@ -468,7 +468,7 @@ const M = {
     waterstop: std(0x0000ff, 0.4),
     plywood: std(0xc89b5f, 0.85),
     lumber: std(0xa87c48, 0.9),
-    styro: std(0xff8fa3, 0.95),
+    styro: std(0xf23d75, 0.9),
     granite: std(0x505050, 0.4),
     slab: std(0xb0b0b0, 0.5),
     copper: std(0xb87333, 0.35, { metalness: 0.6 }),
@@ -1046,6 +1046,11 @@ const STEPS = [
         <p>The forms are built so the <strong>entire mikvah pours in one shot</strong>:
         all four walls <em>and</em> the floor, monolithically — no cold joints anywhere below
         the water line.</p>
+        <div class="callout"><strong>The key detail — the whole reason we show the
+        forming:</strong> the pink <strong>styrofoam block-out</strong> fastened to the
+        ${wallName()}-wall form, right where the top of the staircase will later meet the
+        wall. The camera is zoomed in on it. When the concrete cures and the foam is pulled,
+        it leaves the recessed channel (indent) that the heating pipes will climb.</div>
         <ul>
             <li>The <span class="dim">&frac12;&Prime;</span> foam liner (pink) now lines the cradle walls.</li>
             <li>A <strong>rebar cage</strong> goes in around the mikvah — verticals and
@@ -1077,16 +1082,14 @@ const STEPS = [
             holding the assembly from <em>above</em>, because the wet concrete would otherwise
             float it up.</li>
         </ul>
-        <div class="callout">The critical detail: a <strong>styrofoam block-out</strong>
-        (pink) is fastened high on the ${wallName()}-wall form, right where the top of the
-        staircase will later meet the wall. It is about <span class="dim">9&Prime;</span> wide,
+        <p>The block-out is about <span class="dim">9&Prime;</span> wide,
         <span class="dim">2&frac12;&Prime;</span> thick, and runs only from just under the
         future first step (about <span class="dim">86&Prime;</span>) up to
-        <span class="dim">106&Prime;</span> — from below the water line to above it.
-        When the concrete cures and the foam is pulled, it leaves a short recessed
-        channel (indent) in the wall.</div>`,
+        <span class="dim">106&Prime;</span> — from below the water line to above it.</p>`,
     flags: { site: 1, foam: 1, rebar: 1, forms: 1, styro: 1 },
-    cam: { pos: [-150, 215, 170], tgt: [10, 55, 0] },
+    cam: () => state.coilWall === 'N'
+        ? { pos: [17.5, 200, 128], tgt: [17.5, 96, 49] }
+        : { pos: [128, 200, 42.5], tgt: [49, 96, 42.5] },
     labels: () => {
         const s = indentSpec(state.coilWall);
         const common = [
@@ -1122,12 +1125,18 @@ const STEPS = [
         <div class="callout">Use the <strong>section-cut sliders</strong> (top right) to slice
         through the pour and see the thick half, the bor, and the ledge.</div>`,
     flags: { site: 1, foam: 1, rebar: 1, shell: 1, styroEmbedded: 1 },
-    cam: { pos: [130, 300, -150], tgt: [0, 40, 15] },
-    labels: () => [
-        ['Thick floor — pool 5′ deep', [-26, 56, 0]],
-        ['Bor — 8′ below the rim', [22, 20, 0]],
-        ['Ledge at 42″', [46, 45, -45]]
-    ]
+    cam: () => state.coilWall === 'N'
+        ? { pos: [-38, 120, -26], tgt: [17.5, 92, 48] }
+        : { pos: [-26, 120, -38], tgt: [48, 92, 42.5] },
+    labels: () => {
+        const s2 = indentSpec(state.coilWall);
+        const styro = state.coilWall === 'N'
+            ? ['Styrofoam cast in — this becomes the indent', [(s2.min1 + s2.max1) / 2, s2.yMax + 6, D.inR - 2], true]
+            : ['Styrofoam cast in — this becomes the indent', [D.inR - 2, s2.yMax + 6, (s2.min1 + s2.max1) / 2], true];
+        return [styro,
+            ['Thick floor — pool 5′ deep', [-26, 56, 0]],
+            ['Bor — 8′ below the rim', [22, 20, 0]]];
+    }
 },
 {
     title: 'Strip the Forms — The Indent Appears',
