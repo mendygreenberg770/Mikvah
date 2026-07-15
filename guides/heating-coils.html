@@ -92,6 +92,16 @@ body {
 }
 #stepContent .callout.warn { background: #fdf3f2; border-left-color: #c0392b; }
 #stepContent .dim { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+#stepContent .zoom-coil {
+    display: block; width: 100%;
+    margin: 4px 0 12px;
+    padding: 11px 0;
+    font-family: inherit; font-size: 0.9em; font-weight: 600;
+    border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--accent); background: #fff; color: var(--accent);
+    transition: all 0.15s;
+}
+#stepContent .zoom-coil:hover { background: var(--accent); color: #fff; }
 
 #nav {
     display: flex; gap: 10px;
@@ -246,7 +256,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 8:10 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 8:25 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -792,7 +802,7 @@ function buildStairs(withTiles, ghost) {
     addBox(g, r - D.lastStepW - D.landingW, r - D.lastStepW, landTop - D.landingDrop, landTop,
         D.slopeBotZ - D.lastStepD, D.slopeBotZ - D.lastStepD + D.landingD, mat);
 
-    if (withTiles) {
+    if (withTiles && !ghost) {   // skins stay off while ghosted, so the coil shows through
         // side face
         const sideGeo = new THREE.ShapeGeometry(shape);
         scaleUVs(sideGeo, D.intL, D.intH);
@@ -1216,7 +1226,8 @@ const STEPS = [
             <li>Under the steps, the indent remains open to inspection.</li>
         </ul>
         <div class="callout">Invisible where it should be invisible; verifiable where it must
-        be verifiable.</div>`,
+        be verifiable.</div>
+        <button class="zoom-coil" onclick="window.toggleCoilZoom(this)">Zoom in on the heating coil &rarr;</button>`,
     flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, stairTiles: 1, coil: 1, tiles: 1, water: 1, waterLine: 1 },
     cam: { pos: [190, 170, 200], tgt: [0, 70, 0] },
     labels: () => [['Water level — 51″', [-46, D.waterY + 5, -46], true]]
@@ -1230,7 +1241,24 @@ const state = {
     step: 0,
     coilWall: 'N',
     hideStairs: false,
-    showLabels: true
+    showLabels: true,
+    coilZoom: false
+};
+
+// step-9 button: fly into the coil (whichever wall it's on), ghosting the
+// stairs while zoomed; clicking again returns to the step's normal view
+window.toggleCoilZoom = btn => {
+    state.coilZoom = !state.coilZoom;
+    rebuild();
+    if (state.coilZoom) {
+        flyTo(state.coilWall === 'N'
+            ? { pos: [-44, 74, -44], tgt: [29, 74, 46] }
+            : { pos: [-44, 74, -44], tgt: [46, 70, 26] });
+        btn.innerHTML = '&larr; Back to full view';
+    } else {
+        flyTo(STEPS[state.step].cam);
+        btn.innerHTML = 'Zoom in on the heating coil &rarr;';
+    }
 };
 
 function rebuild() {
@@ -1245,7 +1273,7 @@ function rebuild() {
     if (f.shell) world.add(buildShell(state.coilWall, true));
     if (f.styro || f.styroEmbedded) world.add(buildStyro(state.coilWall));
     if (f.slab) world.add(buildSlabAndCover(f.cover));
-    if (f.stairs && !state.hideStairs) world.add(buildStairs(f.stairTiles, f.ghostStairs));
+    if (f.stairs && !state.hideStairs) world.add(buildStairs(f.stairTiles, f.ghostStairs || state.coilZoom));
     if (f.coil) world.add(buildCoil(state.coilWall));
     if (f.tiles) world.add(buildTiles(state.coilWall));
     if (f.water) world.add(buildWater());
@@ -1297,6 +1325,7 @@ function renderUI() {
 }
 
 function goTo(i) {
+    state.coilZoom = false;
     state.step = Math.max(0, Math.min(STEPS.length - 1, i));
     renderUI();
     rebuild();
@@ -1313,6 +1342,7 @@ document.addEventListener('keydown', e => {
 for (const radio of document.querySelectorAll('input[name=coilWall]')) {
     radio.onchange = () => {
         state.coilWall = radio.value;
+        state.coilZoom = false;
         renderUI();
         rebuild();
         flyTo(STEPS[state.step].cam);
