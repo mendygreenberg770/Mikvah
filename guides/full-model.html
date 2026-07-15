@@ -300,6 +300,48 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     border-radius: 0 6px 6px 0;
 }
 #mpanelBody .cut { margin: 8px 0; }
+#mpanelBody .row .lock {
+    border: none; background: none; cursor: pointer;
+    font-size: 0.95em; padding: 0 2px; line-height: 1;
+}
+#resolver {
+    border: 1px solid #e6b8b4; border-radius: 10px;
+    background: #fdf7f6;
+    padding: 12px 14px; margin: 0 0 12px;
+}
+#resolver .r-title { font-size: 0.88em; font-weight: 700; color: #8a2f2a; margin-bottom: 8px; line-height: 1.45; }
+#resolver .r-opt {
+    display: block; width: 100%; text-align: left;
+    font-family: inherit; font-size: 0.82em; font-weight: 600;
+    color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px;
+    background: #fff; padding: 8px 10px; margin: 6px 0;
+    cursor: pointer; transition: border-color 0.15s;
+    line-height: 1.4;
+}
+#resolver .r-opt:hover { border-color: var(--accent); }
+#resolver .r-opt small { display: block; font-weight: 500; color: var(--muted); }
+#resolver .r-opt .warn { color: #b3402a; font-weight: 700; }
+#resolver .r-amt { display: flex; gap: 6px; margin: 6px 0; }
+#resolver .r-amt input {
+    flex: 1; padding: 6px 8px; font-family: inherit; font-size: 0.85em;
+    border: 1px solid var(--line); border-radius: 6px; text-align: right;
+}
+#resolver .r-amt button {
+    padding: 6px 12px; font-family: inherit; font-size: 0.8em; font-weight: 600;
+    border: 1px solid var(--accent); border-radius: 6px;
+    background: var(--accent); color: #fff; cursor: pointer;
+}
+#issueChips { padding: 0 16px; }
+#issueChips:not(:empty) { padding: 8px 16px; border-top: 1px solid var(--line); background: #fdf7f6; }
+#issueChips .chip {
+    display: inline-block; margin: 2px 4px 2px 0;
+    font-size: 0.72em; font-weight: 600; color: #8a2f2a;
+    border: 1px solid #e6b8b4; border-radius: 14px;
+    background: #fff; padding: 4px 10px; cursor: pointer;
+    font-family: inherit;
+}
+#issueChips .chip:hover { border-color: #b3402a; }
 #mpanelBody .cut-label { display: flex; justify-content: space-between; font-size: 0.78em; color: var(--muted); margin-bottom: 3px; }
 #mpanelBody .cut input[type=range] { width: 100%; accent-color: var(--accent); }
 
@@ -354,6 +396,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     <div id="stepChips"></div>
     <div id="mdisclaimer">Visual guide for understanding only &mdash; not construction documents. Confirm every detail with your Rov and an expert mikvah builder before building.</div>
     <div id="mpanelBody"></div>
+    <div id="issueChips"></div>
     <div id="mnav">
         <button id="mPrev">&larr; Previous</button>
         <button id="mNext" class="primary">Next &rarr;</button>
@@ -415,7 +458,13 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         return parseFloat(str) || 0;
     }
 
-    let currentUnitMode = 'Ft/In'; 
+    let currentUnitMode = 'Ft/In';
+    // per-field override flags: false = automatic, true = user forced a value
+    const ovr = { cradleDepth: false, stairLastLen: false, stairLandingWidth: false };
+    // resolver state (functions live in section 11 below)
+    const settings = { fitMode: 'ask' };          // ask | auto | warn
+    const acceptedIssues = new Set();
+    let resolveDepth = 0;
 
     function formatDisplay(inches) {
         if (currentUnitMode === 'Inches') {
@@ -521,6 +570,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         waterstop: createMat(0x0000ff, 0.4),
         hlm: createMat(0x222222, 0.2),
         recessDark: createMat(0xb5b5b5, 0.7),
+        issueGhost: new THREE.MeshStandardMaterial({ color: 0xe74c3c, transparent: true, opacity: 0.4, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
         rebar: new THREE.MeshStandardMaterial({ color: 0x474c52, roughness: 0.55, metalness: 0.4, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
         copper: new THREE.MeshStandardMaterial({ color: 0xb87333, roughness: 0.35, metalness: 0.6, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
         foam: createMat(0xffcccc, 0.9),
@@ -1112,6 +1162,15 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                 const totalDrop = params.stairFirstDrop + ((params.stairCount - 1) * stairRise);
                 const lastStepTopY = mH - totalDrop;
                 const lastStepBottomY = lastStepTopY - stairRise; 
+                // highlight a gap (or overlap) between the flight and the floor
+                if (Math.abs(lastStepBottomY - mFH) > 1.5) {
+                    const gy0 = Math.min(lastStepBottomY, mFH), gy1 = Math.max(lastStepBottomY, mFH);
+                    const gm = new THREE.Mesh(
+                        new THREE.BoxGeometry(params.stairLastWidth, gy1 - gy0, params.stairLastLen),
+                        materials.issueGhost);
+                    gm.position.set(innerRight - params.stairLastWidth / 2, (gy0 + gy1) / 2, botZ - params.stairLastLen / 2);
+                    mainGroup.add(gm);
+                }
                 const lastStepRiserZ = botZ; 
                 const lastStepNoseZ = lastStepRiserZ - params.stairLastLen; 
 
@@ -1144,7 +1203,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                 if (params.stairLanding) {
                     const landingDrop = params.stairLandingDrop;
                     const landingTopY = lastStepTopY - landingDrop;
-                    const landingBottomY = landingTopY - landingDrop; 
+                    const landingBottomY = mFH;   // the landing is solid from the floor up
 
                     addBox(
                         innerRight - params.stairLastWidth - params.stairLandingWidth, 
@@ -1190,18 +1249,18 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                 const holeOpenW = params.holeWidth;
                 const holeOpenL = params.holeLength;
 
-                let cutMaxX, cutMinX, cutMaxZ, cutMinZ;
-
-                // Fixed: Always "Front Corner" relative to the Bor position
-                cutMaxX = slabMaxX - wallOff;
-                cutMaxZ = slabMaxZ - wallOff;
-                cutMinX = cutMaxX - (holeOpenW + 2*ledgeW);
-                cutMinZ = cutMaxZ - (holeOpenL + 2*ledgeW);
-
-                const holeMaxX = cutMaxX - ledgeW;
-                const holeMinX = cutMinX + ledgeW;
-                const holeMaxZ = cutMaxZ - ledgeW;
-                const holeMinZ = cutMinZ + ledgeW;
+                // the hole is anchored to the BOR's own corner, so it always
+                // sits over the void no matter how the bor moves or shrinks
+                const hW = Math.min(holeOpenW, Math.max(4, bW - 4));
+                const hL = Math.min(holeOpenL, Math.max(4, (borFrontEdge - borBackEdge) - 4));
+                const holeMaxX = rightBorEdge;
+                const holeMinX = holeMaxX - hW;
+                const holeMaxZ = borFrontEdge;
+                const holeMinZ = holeMaxZ - hL;
+                const cutMaxX = holeMaxX + ledgeW;
+                const cutMinX = holeMinX - ledgeW;
+                const cutMaxZ = holeMaxZ + ledgeW;
+                const cutMinZ = holeMinZ - ledgeW;
 
             if(vis.floorAboveBor) {
                 addBox(slabMinX, slabMaxX, cutMaxZ, slabMaxZ, floorYBottom, floorYTop, materials.cover); 
@@ -1305,7 +1364,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             // NEW: WATER IN MIKVAH (51" DEEP)
             // ---------------------
             if (vis.waterMikvah) {
-                const mikWaterDepth = 51;
+                const mikWaterDepth = Math.min(51, Math.max(0, mH - mFH - 2));
                 const mikWater = new THREE.Mesh(
                     new THREE.BoxGeometry(params.mikIntWidth, mikWaterDepth, params.mikIntLength),
                     materials.water
@@ -1572,6 +1631,10 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         if(resetHeight) params.cradleDepth = params.mikIntHeight - 6;
         const calculatedBorLen = params.mikIntLength - (2 * params.ledgeWidth);
         if(calculatedBorLen > 0) params.borLength = calculatedBorLen;
+        // silent housekeeping — auto fields (each has a lock to override)
+        if (!ovr.cradleDepth) params.cradleDepth = Math.max(12, params.mikIntHeight - 6);
+        if (!ovr.stairLastLen) params.stairLastLen = Math.max(0, params.mikIntLength - (params.stairCount - 1) * params.stairTread);
+        if (!ovr.stairLandingWidth) params.stairLandingWidth = Math.max(0, params.mikIntWidth - params.stairLastWidth);
         // Depth from ledge is automatic: the bor bottom always sits 12" off
         // the cradle floor, so the depth follows the floor height and ledge
         // drop (e.g. drop 6" -> 2'6", drop 12" -> 2'0", drop 4" -> 2'8")
@@ -1622,6 +1685,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         updateDerivedDimensions(false);
         updateGuiStrings();
         build();
+        if (typeof resolveIssues === 'function') resolveIssues();
     }
 
     function updateGuiStrings() {
@@ -1727,7 +1791,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         parent.appendChild(d);
         return body;
     }
-    function textField(body, key, label, ro = false) {
+    function textField(body, key, label, ro = false, lockKey = null) {
         const row = document.createElement('label');
         row.className = 'row' + (ro ? ' ro' : '');
         row.innerHTML = `<span>${label}</span>`;
@@ -1735,6 +1799,21 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         inp.type = 'text';
         if (ro) inp.disabled = true;
         inp.addEventListener('change', () => { guiStrings[key] = inp.value; commitChanges(); });
+        if (lockKey) {
+            inp.disabled = !ovr[lockKey];
+            const lk = document.createElement('button');
+            lk.className = 'lock';
+            lk.title = 'Automatic — click to set your own value';
+            lk.textContent = ovr[lockKey] ? '\u270e' : '\ud83d\udd12';
+            lk.addEventListener('click', e => {
+                e.preventDefault();
+                ovr[lockKey] = !ovr[lockKey];
+                inp.disabled = !ovr[lockKey];
+                lk.textContent = ovr[lockKey] ? '\u270e' : '\ud83d\udd12';
+                if (!ovr[lockKey]) commitChanges();   // relocking returns it to auto
+            });
+            row.appendChild(lk);
+        }
         row.appendChild(inp);
         body.appendChild(row);
         F[key] = inp;
@@ -1807,7 +1886,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     const g2 = group(dimsWrap, 'Cradle');
     textField(g2, 'width', 'Cradle width (auto)', true);
     textField(g2, 'length', 'Cradle length (auto)', true);
-    textField(g2, 'cradleDepth', 'Cradle height');
+    textField(g2, 'cradleDepth', 'Cradle height (auto)', false, 'cradleDepth');
     textField(g2, 'wallThick', 'Cradle wall thickness');
     textField(g2, 'ext', 'Floor protrusion');
     textField(g2, 'gravel', 'Gravel depth');
@@ -1829,7 +1908,6 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     const roLit = readout(g3, 'Volume — liters');
 
     const g4 = group(dimsWrap, 'Floor hole & cover');
-    textField(g4, 'holeWallDist', 'Offset from wall');
     textField(g4, 'holeLedgeW', 'Hole ledge width');
     textField(g4, 'holeLedgeDrop', 'Ledge drop depth');
     textField(g4, 'holeWidth', 'Hole width');
@@ -1845,7 +1923,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         const inp = document.createElement('input');
         inp.type = 'number'; inp.min = 1; inp.max = 20; inp.step = 1;
         inp.value = params.stairCount;
-        inp.addEventListener('change', () => { params.stairCount = Math.max(1, Math.min(20, +inp.value || 1)); build(); });
+        inp.addEventListener('change', () => { params.stairCount = Math.max(1, Math.min(20, +inp.value || 1)); commitChanges(); });
         row.appendChild(inp);
         g5.appendChild(row);
         F.stairCount = inp;
@@ -1854,7 +1932,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     textField(g5, 'stairTread', 'Step depth (tread)');
     textField(g5, 'stairFirstDrop', 'First step drop');
     textField(g5, 'stairRise', 'Step rise');
-    textField(g5, 'stairLastLen', 'Bottom step depth');
+    textField(g5, 'stairLastLen', 'Bottom step depth (auto)', false, 'stairLastLen');
     textField(g5, 'stairLastWidth', 'Bottom step width');
     checkField(g5, params, 'stairLanding', 'Bottom landing', () => {
         if (params.stairLanding) {
@@ -1865,7 +1943,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         updateGuiStrings(); build();
     });
     textField(g5, 'stairLandingDrop', 'Landing drop');
-    textField(g5, 'stairLandingWidth', 'Landing width');
+    textField(g5, 'stairLandingWidth', 'Landing width (auto)', false, 'stairLandingWidth');
     textField(g5, 'stairLandingLen', 'Landing length');
     updBtn(g5);
 
@@ -1897,6 +1975,9 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
 
     // ------- floating View Options: dimensions toggle + section cuts -------
     const voBody = document.getElementById('voBody');
+    selectField(voBody, 'When something doesn\u2019t fit', ['Ask me', 'Auto-fix', 'Just warn me'],
+        () => ({ ask: 'Ask me', auto: 'Auto-fix', warn: 'Just warn me' })[settings.fitMode],
+        v => { settings.fitMode = { 'Ask me': 'ask', 'Auto-fix': 'auto', 'Just warn me': 'warn' }[v]; resolveIssues(); });
     checkField(voBody, vis, 'dims', 'Show dimensions', () => { updateDimVisibility(); build(); });
     {
         const gl = document.createElement('div');
@@ -2045,6 +2126,198 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         roGal.textContent = volStats.gallons;
         roLit.textContent = volStats.liters;
     }
+
+    // --- 11. THE RESOLVER: notices problems, asks, offers fixes ---
+    // (state — settings / acceptedIssues / resolveDepth — is declared up top)
+    function fmtIn(v) { return formatDisplay(Math.round(v * 100) / 100); }
+
+    function stairMath() {
+        const mH = params.mikIntHeight, mFH = params.mikFloorHeight;
+        const N = params.stairCount, rise = params.stairRise;
+        const fd = params.stairFirstDrop, tread = params.stairTread, L = params.mikIntLength;
+        const lastTop = mH - (fd + (N - 1) * rise);
+        return {
+            mH, mFH, N, rise, fd, tread, L,
+            lastTop,
+            gap: (lastTop - rise) - mFH,                       // + floats, − buried
+            lastLen: params.stairLastLen,
+            landingH: lastTop - params.stairLandingDrop - mFH,
+            drop: mH - fd - mFH                                // rim→floor minus first drop
+        };
+    }
+    const solveN = m => Math.max(1, Math.round(m.drop / m.rise));
+
+    // Options set params directly, so push params -> strings BEFORE commitChanges
+    // (which parses strings -> params); otherwise stale strings clobber the fix.
+    function commitP() { updateGuiStrings(); commitChanges(); }
+
+    function evaluateIssues() {
+        const m = stairMath();
+        const issues = [];
+        const opt = (label, desc, apply, warn, input) => ({ label, desc, apply, warn, input });
+        const accept = sig => opt('I\u2019ll fix it myself', 'Keep it as-is; this stays listed as a warning.',
+            () => { acceptedIssues.add(sig); resolveIssues(); });
+
+        if (Math.abs(m.gap) > 1.5) {
+            const sig = 'gap' + Math.round(m.gap);
+            const N2 = solveN(m), rise2 = m.drop / N2;
+            const lastLen2 = Math.max(0, m.L - (N2 - 1) * m.tread);
+            const dL = (N2 - m.N) * m.tread;
+            issues.push({ sig,
+                title: m.gap > 0
+                    ? `There\u2019s a ${fmtIn(m.gap)} gap under the stairs.`
+                    : `The stairs sink ${fmtIn(-m.gap)} into the floor.`,
+                options: [
+                    opt(`${N2 > m.N ? 'Add' : N2 < m.N ? 'Remove' : 'Keep'} ${Math.abs(N2 - m.N) || ''} step${Math.abs(N2 - m.N) === 1 ? '' : 's'} \u2192 ${N2} steps`,
+                        `Rise becomes ${fmtIn(rise2)} \u00b7 bottom step ${fmtIn(lastLen2)}${lastLen2 < 24 ? ' \u26a0 small' : ''}`,
+                        () => { params.stairCount = N2; params.stairRise = rise2; commitP(); },
+                        rise2 < 6 || rise2 > 8),
+                    opt(`Keep ${m.N} steps, adjust the rise`,
+                        `Rise becomes ${fmtIn(m.drop / m.N)}${(m.drop / m.N) > 8 || (m.drop / m.N) < 6 ? ' \u26a0 outside 6\u20138\u2033' : ''}`,
+                        () => { params.stairRise = m.drop / m.N; commitP(); },
+                        (m.drop / m.N) > 8 || (m.drop / m.N) < 6),
+                    m.gap > 0 ? opt('Raise the landing to absorb it',
+                        `Landing becomes ${fmtIn(m.landingH + 0)} tall${m.landingH > 8 ? ' \u26a0 more than a comfortable step' : ''} (it already fills to the floor)`,
+                        () => { acceptedIssues.add(sig); resolveIssues(); }, m.landingH > 8) : null,
+                    dL > 0 ? opt('Also make the mikvah longer',
+                        `Suggested +${fmtIn(dL)} so the new step fits and the bottom step stays ${fmtIn(m.lastLen)}`,
+                        v => { params.mikIntLength += (v === undefined ? dL : v); params.stairCount = N2; params.stairRise = rise2; commitP(); },
+                        false, { def: dL }) : null,
+                    accept(sig)
+                ].filter(Boolean) });
+        }
+        if (m.lastLen > 0 && m.lastLen < 24 && !issues.length) {
+            const sig = 'short' + Math.round(m.lastLen);
+            const need = 24 - m.lastLen;
+            const tread2 = (m.L - 24) / (m.N - 1);
+            issues.push({ sig,
+                title: `The bottom step is only ${fmtIn(m.lastLen)} deep.`,
+                options: [
+                    opt(`Fewer steps \u2192 ${m.N - 1}`,
+                        `Rise becomes ${fmtIn(m.drop / (m.N - 1))}${(m.drop / (m.N - 1)) > 8 ? ' \u26a0 steep' : ''} \u00b7 bottom step ${fmtIn(m.L - (m.N - 2) * m.tread)}`,
+                        () => { params.stairCount = m.N - 1; params.stairRise = m.drop / (m.N - 1); commitP(); },
+                        (m.drop / (m.N - 1)) > 8),
+                    opt('Make the mikvah longer',
+                        `Suggested +${fmtIn(need)} for a 24\u2033 bottom step`,
+                        v => { params.mikIntLength += (v === undefined ? need : v); commitP(); },
+                        false, { def: need }),
+                    opt('Shallower treads',
+                        `Treads become ${fmtIn(tread2)} so the bottom step reaches 24\u2033`,
+                        () => { params.stairTread = tread2; commitP(); }, tread2 < 9),
+                    accept(sig)
+                ] });
+        }
+        if (m.landingH > 8 || (m.landingH < 3 && m.landingH > -50)) {
+            const sig = 'landing' + Math.round(m.landingH);
+            if (Math.abs(m.gap) <= 1.5) issues.push({ sig,
+                title: `The landing works out to ${fmtIn(m.landingH)} tall \u2014 outside the comfortable 3\u20138\u2033.`,
+                options: [
+                    opt('Change the landing drop',
+                        `Enter a new drop below the bottom step (now ${fmtIn(params.stairLandingDrop)})`,
+                        v => { if (v !== undefined) { params.stairLandingDrop = v; commitP(); } },
+                        false, { def: Math.max(2, m.lastTop - mFHsafe() - 4) }),
+                    accept(sig)
+                ] });
+        }
+        if (params.holeWidth > params.borWidth - 4 || params.holeLength > params.borLength - 4) {
+            const sig = 'hole';
+            issues.push({ sig,
+                title: 'The bor is too small for the cover opening \u2014 the hole was shrunk to fit.',
+                options: [
+                    opt('Widen the bor', `Bor width becomes ${fmtIn(params.holeWidth + 6)}`,
+                        () => { params.borWidth = params.holeWidth + 6; commitP(); }),
+                    opt('Shrink the hole', `Opening becomes ${fmtIn(Math.max(4, params.borWidth - 6))} wide`,
+                        () => { params.holeWidth = Math.max(4, params.borWidth - 6); commitP(); }),
+                    accept(sig)
+                ] });
+        }
+        if (params.mikFloorHeight + 51 > params.mikIntHeight - 2) {
+            const sig = 'water';
+            acceptedIssues.add(sig);
+            issues.push({ sig, title: `Water is capped at ${fmtIn(params.mikIntHeight - params.mikFloorHeight - 2)} deep \u2014 the rim is too low for 51\u201352\u2033.`, options: [] });
+        }
+        return issues;
+    }
+    function mFHsafe() { return params.mikFloorHeight; }
+
+    function refreshResolver() {
+        const chips = document.getElementById('issueChips');
+        const issues = evaluateIssues();
+        // chips only for issues the user chose to keep (or that have no fix options);
+        // in "warn" mode every issue becomes a chip
+        const chipIssues = issues.filter(i =>
+            acceptedIssues.has(i.sig) || settings.fitMode === 'warn' || !i.options.length);
+        // rebuild only when the set actually changed, so an in-flight click
+        // isn't swallowed by the row being re-rendered under the cursor
+        const key = chipIssues.map(i => i.sig).join('|');
+        if (chips.dataset.key !== key) {
+            chips.dataset.key = key;
+            chips.innerHTML = '';
+            for (const iss of chipIssues) {
+                const c = document.createElement('button');
+                c.className = 'chip';
+                c.textContent = '\u26a0 ' + iss.title;
+                c.addEventListener('click', () => { acceptedIssues.delete(iss.sig); resolveIssues(); });
+                chips.appendChild(c);
+            }
+        }
+        return issues;
+    }
+
+    function showCard(issue) {
+        const prev = document.getElementById('resolver');
+        if (!issue.options.length) { prev?.remove(); return; }
+        // same issue already on screen -> keep the existing DOM (same numbers, same
+        // options), so a click that triggered a re-evaluate still lands on its button
+        if (prev && prev.dataset.sig === issue.sig) return;
+        prev?.remove();
+        const card = document.createElement('div');
+        card.id = 'resolver';
+        card.dataset.sig = issue.sig;
+        card.innerHTML = `<div class="r-title">\u26a0 ${issue.title} What should I do?</div>`;
+        for (const o of issue.options) {
+            const b = document.createElement('button');
+            b.className = 'r-opt';
+            b.innerHTML = `${o.label}${o.warn ? ' <span class="warn">\u26a0</span>' : ''}<small>${o.desc}</small>`;
+            if (o.input) {
+                b.addEventListener('click', () => {
+                    if (b.querySelector('.r-amt')) return;
+                    const amt = document.createElement('span');
+                    amt.className = 'r-amt';
+                    amt.innerHTML = `<input type="text" value="${fmtIn(o.input.def)}"><button>Apply</button>`;
+                    amt.querySelector('button').addEventListener('click', e => {
+                        e.stopPropagation();
+                        o.apply(parseToInches(amt.querySelector('input').value));
+                    });
+                    amt.querySelector('input').addEventListener('click', e => e.stopPropagation());
+                    b.appendChild(amt);
+                });
+            } else {
+                b.addEventListener('click', () => o.apply());
+            }
+            card.appendChild(b);
+        }
+        document.getElementById('mpanelBody').prepend(card);
+        card.scrollIntoView({ block: 'nearest' });
+    }
+
+    function resolveIssues() {
+        if (resolveDepth > 3) return;
+        resolveDepth++;
+        try {
+            const issues = refreshResolver();
+            const active = issues.find(i => !acceptedIssues.has(i.sig) && i.options.length);
+            if (!active || settings.fitMode === 'warn') {
+                document.getElementById('resolver')?.remove();
+                return;
+            }
+            if (settings.fitMode === 'auto') { active.options[0].apply(); return; }
+            showCard(active);
+        } finally {
+            setTimeout(() => { resolveDepth = 0; }, 0);
+        }
+    }
+
     setTimeout(() => goToStep(0), 0);   // controls are created just below
 
     // --- LOOP ---
