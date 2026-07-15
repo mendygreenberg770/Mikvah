@@ -11,8 +11,8 @@ intended for contractors and builders.
   the thick 5′ floor half vs. the 8′ bor half with its ledge, the floor poured above the
   bor with the two-hole granite cover, the staircase, and the key detail: a styrofoam
   block-out cast into the wall that leaves a recessed indent, letting the radiator's
-  pipes climb from the void under the steps to a wall penetration *above* the 51″ water
-  line. Supports both coil placements (north wall serpentine / west wall step-shaped),
+  pipes climb from the void under the steps to a wall penetration *above* the 51–52″ water
+  line. All dimensions are for an 8′×8′ mikvah (builds vary bigger or smaller). Supports both coil placements (north wall serpentine / west wall step-shaped),
   section cuts, hide-stairs, and labels.
 - `guides/full-model.html` — the full parametric reference model (every dimension
   adjustable, build-sequence animation, section cuts).

@@ -49,6 +49,7 @@ body {
     margin: 6px 0 2px; font-size: 1.15em; font-weight: 700; letter-spacing: -0.01em;
 }
 #sidebar header .tagline { font-size: 0.8em; color: var(--muted); }
+#sidebar header .dims-note { font-size: 0.72em; color: var(--muted); font-style: italic; margin-top: 5px; }
 
 #stepList {
     padding: 10px 12px;
@@ -216,7 +217,7 @@ body {
 
     /* compact chrome so the step text gets the room */
     #sidebar header { padding: 8px 16px 6px; }
-    #sidebar header .tagline { display: none; }
+    #sidebar header .tagline, #sidebar header .dims-note { display: none; }
     #sidebar header h1 { font-size: 0.95em; margin: 2px 0 0; }
     #stepList {
         flex-wrap: nowrap; overflow-x: auto;
@@ -249,6 +250,7 @@ body {
             <a class="back" href="../index.html">&larr; All Guides</a>
             <h1>Hidden Heating Coils Under the Steps</h1>
             <div class="tagline">How the radiator hides under the stairs while its pipes exit the wall <em>above</em> the water line.</div>
+            <div class="dims-note">All dimensions shown are for an 8&prime;&nbsp;&times;&nbsp;8&prime; mikvah — mikvaos are built bigger and smaller.</div>
         </header>
         <div id="stepList"></div>
         <div id="stepContent"></div>
@@ -256,7 +258,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 10:20 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 10:50 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -1186,8 +1188,8 @@ const STEPS = [
 {
     title: 'Install the Heating Coils',
     html: () => `
-        <p><strong>The problem:</strong> the water level is <span class="dim">51&Prime;</span>
-        above the floor (surface at <span class="dim">99&Prime;</span>). The space under the
+        <p><strong>The problem:</strong> the water level is <span class="dim">51&ndash;52&Prime;</span>
+        above the floor (surface at about <span class="dim">99&Prime;</span>). The space under the
         steps only reaches about <span class="dim">93&Prime;</span> at the wall — everything
         under there is <em>below</em> the water line, and the wall may not be penetrated
         below the water line.</p>
@@ -1196,7 +1198,7 @@ const STEPS = [
         where they duck into the short <strong>indent</strong>, climb the recessed channel —
         passing behind the stair flight — and only punch through the wall at
         <span class="dim">${D.penY - D.floorH}&Prime;</span> above the floor:
-        safely <strong>above the 51&Prime; water line</strong>. From there they run to the
+        safely <strong>above the 51&ndash;52&Prime; water line</strong>. From there they run to the
         heating equipment.</p>
         ${state.coilWall === 'N' ? `
         <div class="callout">On the <strong>north wall</strong> the coil is a simple serpentine —
@@ -1219,10 +1221,10 @@ const STEPS = [
     labels: () => state.coilWall === 'N'
         ? [['Heating coil — hidden under the steps', [6, 52, 42], true],
            ['Pipes exit ABOVE the water line', [17.5, D.penY + 10, D.inR + 4], true],
-           ['Water level — 51″ deep', [-30, D.waterY + 5, 45]]]
+           ['Water level — 51–52″', [-30, D.waterY + 5, 45]]]
         : [['Heating coil — follows the steps', [42, 52, 4], true],
            ['Pipes exit ABOVE the water line', [D.inR + 4, D.penY + 10, 42], true],
-           ['Water level — 51″ deep', [-25, D.waterY + 5, 45]]]
+           ['Water level — 51–52″', [-25, D.waterY + 5, 45]]]
 },
 {
     title: 'Tile the Mikvah',
@@ -1248,7 +1250,7 @@ const STEPS = [
 {
     title: 'Fill With Water — The Finished Mikvah',
     html: () => `
-        <p>The mikvah is filled to its working depth of <span class="dim">51&Prime;</span>,
+        <p>The mikvah is filled to its working depth of <span class="dim">51&ndash;52&Prime;</span>,
         and the bor below fills through the cover holes.</p>
         <ul>
             <li>The radiator sits fully submerged under the steps, quietly heating the water.</li>
@@ -1261,7 +1263,7 @@ const STEPS = [
         <button class="zoom-coil" onclick="window.toggleCoilZoom(this)">Zoom in on the heating coil &rarr;</button>`,
     flags: { site: 1, foam: 1, rebar: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, stairTiles: 1, coil: 1, tiles: 1, water: 1, waterLine: 1 },
     cam: { pos: [190, 170, 200], tgt: [0, 70, 0] },
-    labels: () => [['Water level — 51″', [-46, D.waterY + 5, -46], true]]
+    labels: () => [['Water level — 51–52″', [-46, D.waterY + 5, -46], true]]
 }
 ];
 
