@@ -256,7 +256,7 @@ body {
             <button id="btnPrev">&larr; Previous</button>
             <button id="btnNext" class="primary">Next &rarr;</button>
         </div>
-        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 10:05 PM ET</div>
+        <div id="buildStamp">Updated: Jul 14, 2026 &middot; 10:20 PM ET</div>
     </aside>
 
     <main id="viewport">
@@ -455,6 +455,7 @@ const M = {
     granite: std(0x505050, 0.4),
     slab: std(0xb0b0b0, 0.5),
     copper: std(0xb87333, 0.35, { metalness: 0.6 }),
+    rebar: std(0x474c52, 0.55, { metalness: 0.4 }),
     tiles: new THREE.MeshStandardMaterial({
         map: mosaicTexture(), roughness: 0.2, metalness: 0.1,
         side: THREE.DoubleSide, clippingPlanes: clipPlanes,
@@ -678,6 +679,31 @@ function buildForms(wallSide) {
     // because the wet concrete would otherwise float the box up
     addBox(g, 6, 10, D.intH, D.intH + 4, -72, 72, M.lumber);
     addBox(g, 34, 38, D.intH, D.intH + 4, -72, 72, M.lumber);
+    return g;
+}
+
+// rebar cage around the mikvah (note: some builders pour without rebar).
+// Placed during forming; after the pour it lives inside the concrete, so
+// it shows up again wherever the section cuts slice through.
+function buildRebar() {
+    const g = new THREE.Group();
+    const m = 54;      // centerline of the wall cavities (walls run 48"-60")
+    const b = 0.4;
+    for (let p = -54; p <= 54; p += 12) {           // verticals, all four walls
+        for (const [x, z] of [[p, m], [p, -m], [-m, p], [m, p]]) {
+            addBox(g, x - b, x + b, 2, 106, z - b, z + b, M.rebar);
+        }
+    }
+    for (const y of [12, 28, 44, 60, 76, 92, 104]) { // horizontal rings
+        addBox(g, -m - b, m + b, y, y + 0.8, m - b, m + b, M.rebar);
+        addBox(g, -m - b, m + b, y, y + 0.8, -m - b, -m + b, M.rebar);
+        addBox(g, -m - b, -m + b, y, y + 0.8, -m + b, m - b, M.rebar);
+        addBox(g, m - b, m + b, y, y + 0.8, -m + b, m - b, M.rebar);
+    }
+    for (let p = -56; p <= 56; p += 16) {            // floor mat
+        addBox(g, -56, 56, 5, 5.8, p - b, p + b, M.rebar);
+        addBox(g, p - b, p + b, 5.8, 6.6, -56, 56, M.rebar);
+    }
     return g;
 }
 
@@ -989,7 +1015,8 @@ const STEPS = [
         coating the walls (the floor is left bare).</p>
         <p>Before forming, a thin (<span class="dim">&frac12;&Prime;</span>) foam liner is placed
         against the cradle walls — you&rsquo;ll see it in the next step. It separates the
-        mikvah&rsquo;s concrete from the cradle around it.</p>
+        mikvah&rsquo;s concrete from the cradle around it: another layer of protection
+        against water leaking.</p>
         <div class="callout">Everything from here on gets poured <em>inside</em> this cradle.</div>`,
     flags: { site: 1 },
     cam: { pos: [175, 205, 175], tgt: [0, 45, 0] },
@@ -1004,6 +1031,9 @@ const STEPS = [
         the water line.</p>
         <ul>
             <li>The <span class="dim">&frac12;&Prime;</span> foam liner (pink) now lines the cradle walls.</li>
+            <li>A <strong>rebar cage</strong> goes in around the mikvah — verticals and
+            horizontal rings in the wall cavities, and a mat in the floor. <em>(Note: some
+            builders pour without rebar.)</em></li>
             <li>Interior wall forms define the <span class="dim">96&Prime; &times; 96&Prime;</span> finished interior.</li>
             <li>There are <strong>no boards over the floor surfaces</strong> — the wet concrete
             would just push them up. The crew levels (screeds) the floor to its lines during
@@ -1038,7 +1068,7 @@ const STEPS = [
         <span class="dim">106&Prime;</span> — from below the water line to above it.
         When the concrete cures and the foam is pulled, it leaves a short recessed
         channel (indent) in the wall.</div>`,
-    flags: { site: 1, foam: 1, forms: 1, styro: 1 },
+    flags: { site: 1, foam: 1, rebar: 1, forms: 1, styro: 1 },
     cam: { pos: [-150, 215, 170], tgt: [10, 55, 0] },
     labels: () => {
         const s = indentSpec(state.coilWall);
@@ -1048,6 +1078,7 @@ const STEPS = [
             ['Same 6″ lip, 6″ out — thick floor pours against it', [-4, 58, -20]],
             ['Two 2×4s hold it from above', [22, 118, -56]],
             ['Interior wall forms', [-52, 118, -46]],
+            ['Rebar cage (some build without it)', [-54, 112, 30]],
             ['Open — screeded to 48″ during the pour', [-26, 54, 0]]
         ];
         return state.coilWall === 'N'
@@ -1073,7 +1104,7 @@ const STEPS = [
         you can see its pink face in the concrete.</p>
         <div class="callout">Use the <strong>section-cut sliders</strong> (top right) to slice
         through the pour and see the thick half, the bor, and the ledge.</div>`,
-    flags: { site: 1, foam: 1, shell: 1, styroEmbedded: 1 },
+    flags: { site: 1, foam: 1, rebar: 1, shell: 1, styroEmbedded: 1 },
     cam: { pos: [130, 300, -150], tgt: [0, 40, 15] },
     labels: () => [
         ['Thick floor — pool 5′ deep', [-26, 56, 0]],
@@ -1096,7 +1127,7 @@ const STEPS = [
         <div class="callout">This indent is the whole trick. The coil&rsquo;s pipes come out
         of it just under the first step, and inside it they climb past the water line,
         without sticking out into the pool and without any low penetration.</div>`,
-    flags: { site: 1, foam: 1, shell: 1, indent: 1 },
+    flags: { site: 1, foam: 1, rebar: 1, shell: 1, indent: 1 },
     cam: () => state.coilWall === 'N'
         ? { pos: [-38, 86, -44], tgt: [18, 94, 48] }
         : { pos: [-44, 86, -32], tgt: [48, 94, 42] },
@@ -1119,7 +1150,7 @@ const STEPS = [
             <li>The <strong>granite bor cover</strong> drops into the rabbet flush with the
             floor, with <strong>two 4&Prime; holes</strong> through it.</li>
         </ul>`,
-    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1 },
+    flags: { site: 1, foam: 1, rebar: 1, shell: 1, indent: 1, slab: 1, cover: 1 },
     cam: { pos: [90, 310, -90], tgt: [24, 45, 25] },
     labels: () => [
         ['Floor above bor (on the ledge)', [-10, 54, -20]],
@@ -1145,7 +1176,7 @@ const STEPS = [
         behind the flight, past the water line.</p>
         <div class="callout">Check <strong>&ldquo;Hide stairs&rdquo;</strong> (top right)
         to look into the void under the flight.</div>`,
-    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1 },
+    flags: { site: 1, foam: 1, rebar: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1 },
     cam: { pos: [-150, 290, -130], tgt: [25, 65, 10] },
     labels: () => [
         ['7 steps · 7½″ rise · 10″ tread', [30, 112, 10]],
@@ -1181,7 +1212,7 @@ const STEPS = [
         crossing the wall <em>above</em> it.</div>
         <p>The stairs are drawn translucent here so you can see the coil in place —
         use <strong>&ldquo;Hide stairs&rdquo;</strong> to remove them entirely.</p>`,
-    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, ghostStairs: 1, coil: 1, waterLine: 1 },
+    flags: { site: 1, foam: 1, rebar: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, ghostStairs: 1, coil: 1, waterLine: 1 },
     cam: () => state.coilWall === 'N'
         ? { pos: [-46, 72, -46], tgt: [30, 76, 47] }
         : { pos: [-46, 72, -46], tgt: [47, 76, 26] },
@@ -1206,7 +1237,7 @@ const STEPS = [
         the water line — so no one should ever think there&rsquo;s a problem.</div>
         <p>Use <strong>&ldquo;Hide stairs&rdquo;</strong> or the section cuts to peek under
         the flight and verify the indent and coil are still there and inspectable.</p>`,
-    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, stairTiles: 1, coil: 1, tiles: 1, waterLine: 1 },
+    flags: { site: 1, foam: 1, rebar: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, stairTiles: 1, coil: 1, tiles: 1, waterLine: 1 },
     cam: { pos: [-130, 280, -140], tgt: [15, 55, 5] },
     labels: () => state.coilWall === 'N'
         ? [['Tiled over — invisible from the pool', [30, 100, 44]],
@@ -1228,7 +1259,7 @@ const STEPS = [
         <div class="callout">Invisible where it should be invisible; verifiable where it must
         be verifiable.</div>
         <button class="zoom-coil" onclick="window.toggleCoilZoom(this)">Zoom in on the heating coil &rarr;</button>`,
-    flags: { site: 1, foam: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, stairTiles: 1, coil: 1, tiles: 1, water: 1, waterLine: 1 },
+    flags: { site: 1, foam: 1, rebar: 1, shell: 1, indent: 1, slab: 1, cover: 1, stairs: 1, stairTiles: 1, coil: 1, tiles: 1, water: 1, waterLine: 1 },
     cam: { pos: [190, 170, 200], tgt: [0, 70, 0] },
     labels: () => [['Water level — 51″', [-46, D.waterY + 5, -46], true]]
 }
@@ -1270,6 +1301,7 @@ function rebuild() {
     if (f.site) world.add(buildSite());
     if (f.foam) world.add(buildFoam());
     if (f.forms) world.add(buildForms(state.coilWall));
+    if (f.rebar) world.add(buildRebar());
     if (f.shell) world.add(buildShell(state.coilWall, true));
     if (f.styro || f.styroEmbedded) world.add(buildStyro(state.coilWall));
     if (f.slab) world.add(buildSlabAndCover(f.cover));
