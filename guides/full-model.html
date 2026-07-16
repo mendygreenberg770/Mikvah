@@ -689,7 +689,35 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         roomFloor: createMat(0xdedad2, 0.9),
         // room walls face inward only (dollhouse) — the camera always sees
         // through the near wall into the room, never the bare outside
-        roomWall: new THREE.MeshStandardMaterial({ color: 0xe9e5dc, roughness: 1, clippingPlanes: clipPlanes }),
+        roomWall: new THREE.MeshStandardMaterial({ color: 0xf3efe8, roughness: 0.95, clippingPlanes: clipPlanes }),
+        roomCeil: new THREE.MeshStandardMaterial({ color: 0xf8f5ef, roughness: 1, clippingPlanes: clipPlanes }),
+        baseboard: createMat(0xc9c1b2, 0.8),
+        // large-format warm porcelain — the room floor AND the rim around
+        // the water get this same finish
+        porcelain: new THREE.MeshStandardMaterial({
+            map: (() => {
+                const c = document.createElement('canvas');
+                c.width = 256; c.height = 256;
+                const x = c.getContext('2d');
+                x.fillStyle = '#b7ae9f'; x.fillRect(0, 0, 256, 256);      // grout
+                const g = x.createLinearGradient(0, 0, 256, 256);
+                g.addColorStop(0, '#ded7ca'); g.addColorStop(0.5, '#d6cec0'); g.addColorStop(1, '#ddd5c8');
+                x.fillStyle = g; x.fillRect(2, 2, 252, 252);
+                x.strokeStyle = 'rgba(255,255,255,0.16)';
+                for (let i = 0; i < 7; i++) {
+                    x.beginPath();
+                    const y0 = 20 + i * 34;
+                    x.moveTo(0, y0); x.bezierCurveTo(80, y0 + 14, 170, y0 - 16, 256, y0 + 6);
+                    x.stroke();
+                }
+                const t = new THREE.CanvasTexture(c);
+                t.wrapS = t.wrapT = THREE.RepeatWrapping;
+                t.colorSpace = THREE.SRGBColorSpace;
+                return t;
+            })(),
+            roughness: 0.35, metalness: 0.04,
+            side: THREE.DoubleSide, clippingPlanes: clipPlanes
+        }),
         tiles: new THREE.MeshStandardMaterial({
             map: mosaicTexture,
             roughness: 0.2,
@@ -1788,37 +1816,63 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             const rX = params.mikIntWidth / 2 + 30;
             const zB = -(params.mikIntLength / 2 + 24);
             const zF = params.mikIntLength / 2 + 72;
-            const fT = mH;                         // floor flush with the rim
-            const wallTop = mH + 96;               // 8' ceilings
+            const finT = 0.3;                      // porcelain finish layer
+            const fT = mH + finT;                  // finished floor level
+            const wallTop = fT + 96;               // 8' ceilings
             const doorW = 36, doorH = 84;
-            // floor ring — leaves the concrete rim as a border around the water
+            // structural slab under the room, around the mikvah shell
             const sx = mikStructureW / 2 + 0.05, sz = mikStructureL / 2 + 0.05;
             const mkSlab = (x0, x1, z0, z1) => {
                 if (x1 - x0 <= 0.01 || z1 - z0 <= 0.01) return;
-                const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, fT - grade - 0.05, z1 - z0), materials.roomFloor);
-                m.position.set((x0 + x1) / 2, (grade + 0.05 + fT) / 2, (z0 + z1) / 2);
+                const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, mH - grade - 0.05, z1 - z0), materials.roomFloor);
+                m.position.set((x0 + x1) / 2, (grade + 0.05 + mH) / 2, (z0 + z1) / 2);
                 mainGroup.add(m);
             };
             mkSlab(-rX, rX, sz, zF);
             mkSlab(-rX, rX, zB, -sz);
             mkSlab(-rX, -sx, -sz, sz);
             mkSlab(sx, rX, -sz, sz);
-            const mkPanel = (pw, ph, x, y, z, rotY) => {
+            // porcelain finish — runs from the EDGE OF THE WATER out to the
+            // walls, so the concrete rim is tiled just like the room floor
+            const wx = params.mikIntWidth / 2, wz = params.mikIntLength / 2;
+            const mkFin = (x0, x1, z0, z1) => {
+                if (x1 - x0 <= 0.01 || z1 - z0 <= 0.01) return;
+                const geo = new THREE.BoxGeometry(x1 - x0, finT, z1 - z0);
+                scaleUVs(geo, x1 - x0, z1 - z0, 24);   // 24" porcelain tiles
+                const m = new THREE.Mesh(geo, materials.porcelain);
+                m.position.set((x0 + x1) / 2, mH + finT / 2, (z0 + z1) / 2);
+                mainGroup.add(m);
+            };
+            mkFin(-rX, rX, wz, zF);
+            mkFin(-rX, rX, zB, -wz);
+            mkFin(-rX, -wx, -wz, wz);
+            mkFin(wx, rX, -wz, wz);
+            // walls (inward-facing) + baseboards along the floor
+            const mkPanel = (pw, ph, x, y, z, rotY, mat) => {
                 if (pw <= 0.01 || ph <= 0.01) return;
-                const m = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), materials.roomWall);
+                const m = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), mat || materials.roomWall);
                 m.rotation.y = rotY;
                 m.position.set(x, y, z);
+                mainGroup.add(m);
+            };
+            const bbH = 3.5, bbT = 0.5;
+            const mkBase = (x0, x1, z0, z1) => {
+                const m = new THREE.Mesh(new THREE.BoxGeometry(Math.max(x1 - x0, bbT), bbH, Math.max(z1 - z0, bbT)), materials.baseboard);
+                m.position.set((x0 + x1) / 2, fT + bbH / 2, (z0 + z1) / 2);
                 mainGroup.add(m);
             };
             const wallH = wallTop - fT, midY = (fT + wallTop) / 2;
             const lintelH = wallH - doorH, lintelY = fT + doorH + lintelH / 2;
             // back wall — solid
             mkPanel(2 * rX, wallH, 0, midY, zB, 0);
+            mkBase(-rX, rX, zB, zB + bbT);
             // front (entry) wall — door in the middle
             const jamb = rX - doorW / 2;
             mkPanel(jamb, wallH, -(doorW / 2 + jamb / 2), midY, zF, Math.PI);
             mkPanel(jamb, wallH, doorW / 2 + jamb / 2, midY, zF, Math.PI);
             mkPanel(doorW, lintelH, 0, lintelY, zF, Math.PI);
+            mkBase(-rX, -doorW / 2, zF - bbT, zF);
+            mkBase(doorW / 2, rX, zF - bbT, zF);
             // side walls — a door 18" from the front wall on each side
             const d1 = zF - 18 - doorW, d2 = zF - 18;
             for (const s of [1, -1]) {
@@ -1826,7 +1880,14 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                 mkPanel(d1 - zB, wallH, s * rX, midY, (zB + d1) / 2, rot);
                 mkPanel(zF - d2, wallH, s * rX, midY, (d2 + zF) / 2, rot);
                 mkPanel(doorW, lintelH, s * rX, lintelY, (d1 + d2) / 2, rot);
+                mkBase(s * rX - (s === 1 ? bbT : 0), s * rX + (s === 1 ? 0 : bbT), zB, d1);
+                mkBase(s * rX - (s === 1 ? bbT : 0), s * rX + (s === 1 ? 0 : bbT), d2, zF);
             }
+            // ceiling — faces down only, so overhead views still see in
+            const ceil = new THREE.Mesh(new THREE.PlaneGeometry(2 * rX, zF - zB), materials.roomCeil);
+            ceil.rotation.x = Math.PI / 2;
+            ceil.position.set(0, wallTop, (zB + zF) / 2);
+            mainGroup.add(ceil);
         }
 
         // 10. BACKFILL — earth returned ONLY into the over-dig ring between
@@ -1965,6 +2026,8 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     // --- 8. ANIMATION ---
     async function runAnimation() {
         const dimsWereOn = vis.dims;
+        const roomWasOn = settings.showRoom;
+        settings.showRoom = false;   // the room appears at the end of the build
         const floorBorWasOn = vis.floorAboveBor; 
         const coverWasOn = vis.borCover;
         const stairsWasOn = vis.stairs;
@@ -2001,6 +2064,9 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         // --- NEW: WATER ANIMATION STEPS ---
         await wait(600); vis.waterBor = true; build();
         await wait(600); vis.waterMikvah = true; build();
+
+        // the room (if enabled) goes up last, around the finished mikvah
+        if (roomWasOn) { await wait(800); settings.showRoom = true; build(); }
 
         if(dimsWereOn) { await wait(800); vis.dims = true; build(); }
         refreshUI();
@@ -2219,10 +2285,15 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     checkField(voBody, settings, 'hideEarth', 'Hide the earth (float the model)', build);
     checkField(voBody, settings, 'showRoom', 'Room around the mikvah (try it)', () => {
         build();
-        if (settings.showRoom) flyTo({
-            pos: [params.mikIntWidth / 2 + 210, params.mikIntHeight + 190, params.mikIntLength / 2 + 300],
-            tgt: [0, params.mikIntHeight - 20, 0]
-        });
+        if (settings.showRoom) {
+            // stand in the entry area at eye level, looking across the water,
+            // and keep the orbit focused inside the room
+            const mH = params.mikIntHeight, zF = params.mikIntLength / 2 + 72;
+            flyTo({ pos: [params.mikIntWidth / 2 + 14, mH + 66, zF - 8], tgt: [-6, mH + 8, -params.mikIntLength / 4] });
+            controls.maxDistance = 330;
+        } else {
+            controls.maxDistance = Infinity;
+        }
     });
     {
         const gl = document.createElement('div');
