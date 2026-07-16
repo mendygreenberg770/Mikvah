@@ -675,6 +675,8 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             polygonOffset: true,
             polygonOffsetFactor: -1, // Pull forward slightly
         }),
+        // depthWrite off: transparent faces otherwise pop in and out against
+        // each other depending on draw order — the "flaky" water look
         water: new THREE.MeshStandardMaterial({
             color: 0x00aaff,
             transparent: true,
@@ -682,7 +684,8 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             roughness: 0.1,
             metalness: 0.1,
             side: THREE.DoubleSide,
-            clippingPlanes: clipPlanes
+            clippingPlanes: clipPlanes,
+            depthWrite: false
         }),
         dimLine: new THREE.LineBasicMaterial({ color: 0x002266 }),
         dimText: new THREE.MeshBasicMaterial({ color: 0x000000 })
@@ -1415,13 +1418,14 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             // ---------------------
             if (vis.waterBor) {
                 // 1. Base Water: Fills the main pit up to the main ledge (bottom of floor slab)
-                const waterH = ledgeLevel - baseH;
+                // inset a hair from the bor walls — coincident faces z-fight
+                const waterH = ledgeLevel - baseH - 0.1;
                 if (waterH > 0) {
                     const borWater = new THREE.Mesh(
-                        new THREE.BoxGeometry(bW, waterH, bL),
+                        new THREE.BoxGeometry(Math.max(0.1, bW - 0.5), waterH, Math.max(0.1, bL - 0.5)),
                         materials.water
                     );
-                    borWater.position.set(borCenterX, baseH + waterH/2, borCenterZ);
+                    borWater.position.set(borCenterX, baseH + 0.1 + waterH/2, borCenterZ);
                     mainGroup.add(borWater);
                 }
 
@@ -1430,12 +1434,14 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                     // Calculate water extension height inside the hole
                     // Starts at: ledgeLevel (Bottom of floor slab)
                     // Ends at: floorYTop - params.holeLedgeDrop (Top of the granite/concrete ledge)
-                    const holeWaterBottom = ledgeLevel;
-                    const holeWaterTop = floorYTop - params.holeLedgeDrop;
+                    // start a little inside the bor water (coincident faces
+                    // flicker) and stop a hair short of the cover ledge
+                    const holeWaterBottom = ledgeLevel - 0.5;
+                    const holeWaterTop = floorYTop - params.holeLedgeDrop - 0.25;
                     const holeWaterH = holeWaterTop - holeWaterBottom;
 
-                    const hwW = holeMaxX - holeMinX;
-                    const hwL = holeMaxZ - holeMinZ;
+                    const hwW = holeMaxX - holeMinX - 0.5;
+                    const hwL = holeMaxZ - holeMinZ - 0.5;
 
                     if (holeWaterH > 0.01 && hwW > 0.01 && hwL > 0.01) {
                         const holeWater = new THREE.Mesh(
@@ -1457,14 +1463,16 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             // NEW: WATER IN MIKVAH (51" DEEP)
             // ---------------------
             if (vis.waterMikvah) {
-                const mikWaterDepth = Math.min(51, Math.max(0, mH - mFH - 2));
-                const mikWater = new THREE.Mesh(
-                    new THREE.BoxGeometry(params.mikIntWidth, mikWaterDepth, params.mikIntLength),
-                    materials.water
-                );
-                // Position: Center (0,0,0) in X/Z, Y sits on mFH
-                mikWater.position.set(0, mFH + mikWaterDepth/2, 0);
-                mainGroup.add(mikWater);
+                // inset a hair from the walls/floor — coincident faces z-fight
+                const mikWaterDepth = Math.min(51, Math.max(0, mH - mFH - 2)) - 0.1;
+                if (mikWaterDepth > 0) {
+                    const mikWater = new THREE.Mesh(
+                        new THREE.BoxGeometry(params.mikIntWidth - 0.5, mikWaterDepth, params.mikIntLength - 0.5),
+                        materials.water
+                    );
+                    mikWater.position.set(0, mFH + 0.1 + mikWaterDepth/2, 0);
+                    mainGroup.add(mikWater);
+                }
             }
 
             addDim(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, mFH, 0), `Floor H`);

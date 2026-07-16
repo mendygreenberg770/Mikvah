@@ -399,7 +399,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xeef1f4);
 const camera = new THREE.PerspectiveCamera(45, 1, 1, 10000);
 camera.position.set(300, 320, 300);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, stencil: true });
 renderer.localClippingEnabled = true;
 host.appendChild(renderer.domElement);
 
@@ -479,11 +479,14 @@ const M = {
         side: THREE.DoubleSide, clippingPlanes: clipPlanes,
         polygonOffset: true, polygonOffsetFactor: -1
     }),
+    // depthWrite off: transparent faces otherwise pop in and out against
+    // each other depending on draw order — the "flaky" water look
     water: new THREE.MeshStandardMaterial({
         color: 0x00aaff, transparent: true, opacity: 0.5, roughness: 0.1,
-        metalness: 0.1, side: THREE.DoubleSide, clippingPlanes: clipPlanes
+        metalness: 0.1, side: THREE.DoubleSide, clippingPlanes: clipPlanes,
+        depthWrite: false
     }),
-    waterLine: new THREE.LineDashedMaterial({ color: 0x0055cc, dashSize: 4, gapSize: 3 })
+    waterLine: new THREE.LineDashedMaterial({ color: 0x0055cc, dashSize: 4, gapSize: 3, clippingPlanes: clipPlanes })
 };
 
 /* ---------------- build helpers ---------------- */
@@ -491,6 +494,94 @@ const world = new THREE.Group();
 scene.add(world);
 const labelGroup = new THREE.Group();
 scene.add(labelGroup);
+
+/* ---------------- capped section cuts ----------------
+   GPU clipping alone leaves cut solids looking hollow — you see the inside
+   back faces of every box. For each active cut plane we mark the true
+   cross-section of each solid in the stencil buffer (back faces increment,
+   front faces decrement, so only pixels "inside" a solid stay non-zero) and
+   draw a flat cap there in the material's own color, slightly darkened.
+   The cut then reads like a real architectural section. */
+const capsGroup = new THREE.Group();
+scene.add(capsGroup);
+const capExclude = new Set([M.copper, M.rebar]);  // open-ended tubes can't be capped
+let capsActiveKey = null;
+const planeActive = p => p.constant < 1950;
+
+function rebuildCaps() {
+    capsGroup.clear();
+    const active = clipPlanes.filter(planeActive);
+    capsActiveKey = clipPlanes.map(p => planeActive(p) ? '1' : '0').join('');
+    if (!active.length) return;
+    const byMat = new Map();
+    world.updateMatrixWorld(true);
+    world.traverse(o => {
+        if (!o.isMesh || !o.material || o.material.transparent) return;
+        if (!o.material.clippingPlanes || !o.material.clippingPlanes.length) return;
+        if (capExclude.has(o.material)) return;
+        // flat geometry isn't a closed volume — it would poison the
+        // inside/outside count and smear its cap across the screen
+        if (o.geometry.type === 'ShapeGeometry' || o.geometry.type === 'PlaneGeometry') return;
+        if (!byMat.has(o.material)) byMat.set(o.material, []);
+        byMat.get(o.material).push(o);
+    });
+    let order = 1;
+    for (const plane of active) {
+        const others = clipPlanes.filter(p => p !== plane);
+        for (const [mat, meshes] of byMat) {
+            const mkStencil = (side, op) => new THREE.MeshBasicMaterial({
+                side, clippingPlanes: [plane],
+                depthWrite: false, depthTest: false, colorWrite: false,
+                stencilWrite: true, stencilFunc: THREE.AlwaysStencilFunc,
+                stencilFail: op, stencilZFail: op, stencilZPass: op
+            });
+            const stencilMats = [
+                mkStencil(THREE.BackSide, THREE.IncrementWrapStencilOp),
+                mkStencil(THREE.FrontSide, THREE.DecrementWrapStencilOp)
+            ];
+            for (const src of meshes) {
+                for (const sMat of stencilMats) {
+                    const sm = new THREE.Mesh(src.geometry, sMat);
+                    sm.matrixAutoUpdate = false;
+                    sm.matrix.copy(src.matrixWorld);
+                    sm.renderOrder = order;
+                    capsGroup.add(sm);
+                }
+            }
+            const capColor = mat.map
+                ? new THREE.Color(0xc9ced3)                    // tiled surfaces cut to grout gray
+                : mat.color.clone().multiplyScalar(0.82);
+            const cap = new THREE.Mesh(
+                new THREE.PlaneGeometry(3000, 3000),
+                new THREE.MeshStandardMaterial({
+                    color: capColor, roughness: 0.85, metalness: 0,
+                    side: THREE.DoubleSide, clippingPlanes: others,
+                    stencilWrite: true, stencilRef: 0,
+                    stencilFunc: THREE.NotEqualStencilFunc,
+                    stencilFail: THREE.ReplaceStencilOp,
+                    stencilZFail: THREE.ReplaceStencilOp,
+                    stencilZPass: THREE.ReplaceStencilOp
+                }));
+            cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), plane.normal);
+            cap.position.copy(plane.normal).multiplyScalar(-plane.constant);
+            cap.userData.plane = plane;
+            cap.renderOrder = order + 0.05;
+            cap.onAfterRender = r => r.clearStencil();
+            capsGroup.add(cap);
+            order++;
+        }
+    }
+}
+
+// cheap path for slider drags: same planes active, just moved
+function updateCaps() {
+    const key = clipPlanes.map(p => planeActive(p) ? '1' : '0').join('');
+    if (key !== capsActiveKey) { rebuildCaps(); return; }
+    for (const o of capsGroup.children) {
+        const p = o.userData.plane;
+        if (p) o.position.copy(p.normal).multiplyScalar(-p.constant);
+    }
+}
 
 function addBox(g, minX, maxX, yMin, yMax, minZ, maxZ, mat) {
     const w = maxX - minX, h = yMax - yMin, l = maxZ - minZ;
@@ -1030,11 +1121,17 @@ function buildTiles(wallSide) {
 
 function buildWater() {
     const g = new THREE.Group();
-    const r = D.inR;
-    addBox(g, -r, r, D.floorH, D.waterY, -r, r, M.water);                      // mikvah pool
-    addBox(g, D.borMinX, D.borMaxX, D.borBottom, D.ledgeLevel, D.borMinZ, D.borMaxZ, M.water); // bor
-    addBox(g, D.holeMinX, D.holeMaxX, D.ledgeLevel, D.floorH - D.holeLedgeDrop,
-        D.holeMinZ, D.holeMaxZ, M.water);                                      // rises into the hole
+    // inset each water box a hair from the surfaces it touches — faces that
+    // sit exactly on a tile or concrete face z-fight and shimmer
+    const e = 0.25;
+    const r = D.inR - e;
+    addBox(g, -r, r, D.floorH + 0.1, D.waterY, -r, r, M.water);                // mikvah pool
+    addBox(g, D.borMinX + e, D.borMaxX - e, D.borBottom + 0.1, D.ledgeLevel,
+        D.borMinZ + e, D.borMaxZ - e, M.water);                                // bor
+    // hole water starts a little inside the bor water so the two boxes don't
+    // meet in a coincident (flickering) face, and stops short of the cover
+    addBox(g, D.holeMinX + e, D.holeMaxX - e, D.ledgeLevel - 0.5,
+        D.floorH - D.holeLedgeDrop - e, D.holeMinZ + e, D.holeMaxZ - e, M.water);
     return g;
 }
 
@@ -1362,6 +1459,7 @@ function rebuild() {
     if (state.showLabels && step.labels) {
         for (const [text, pos, accent] of step.labels()) makeLabel(text, pos, !!accent);
     }
+    rebuildCaps();
 }
 
 /* ---------------- camera animation ---------------- */
@@ -1450,6 +1548,7 @@ for (const c of CUTS) {
         const d = +slider.value;
         c.plane.constant = d === 0 ? 2000 : c.edge - d;
         label.textContent = d === 0 ? 'off' : d + '″';
+        updateCaps();
     };
 }
 
