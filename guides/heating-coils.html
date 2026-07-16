@@ -284,8 +284,8 @@ body {
             <div id="voBody">
             <div class="group" style="border-top:none; margin-top:0; padding-top:0;">
                 <div class="group-label">Coil Wall</div>
-                <label class="row"><input type="radio" name="coilWall" value="N" checked> North wall — straight serpentine</label>
-                <label class="row"><input type="radio" name="coilWall" value="E"> West wall — follows the steps</label>
+                <label class="row"><input type="radio" name="coilWall" value="N" checked> Front wall — straight serpentine</label>
+                <label class="row"><input type="radio" name="coilWall" value="E"> Side wall — follows the steps</label>
             </div>
             <div class="group">
                 <label class="row"><input type="checkbox" id="chkHideStairs"> Hide stairs (peek underneath)</label>
@@ -329,8 +329,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 /* =========================================================================
    DIMENSIONS — all inches, taken from the master parametric model defaults.
    Y = 0 is the top of the cradle floor slab (bottom of the monolithic pour).
-   North wall = +Z (you enter here, steps descend to the south).
-   West wall  = +X (the stairs run along it; the bor is under this half).
+   Front wall (entry) = +Z (steps descend away from it).
+   Side wall  = +X (the stairs run along it; the bor is under this half).
    ========================================================================= */
 const D = {
     intW: 96, intL: 96, intH: 108,       // mikvah interior 8' x 8', walls 9' tall
@@ -682,12 +682,13 @@ function buildSite() {
     addBox(g, -ow, -iw, 0, D.cradleH, -iw, iw, M.cradle);
     addBox(g, iw, ow, 0, D.cradleH, -iw, iw, M.cradle);
 
-    // HLM 5000 waterproofing (thin dark coat on the cradle walls — NOT the floor)
-    const t = 0.25;
-    addBox(g, -iw, iw, 0, D.cradleH, iw - t, iw, M.hlm);
-    addBox(g, -iw, iw, 0, D.cradleH, -iw, -iw + t, M.hlm);
-    addBox(g, -iw, -iw + t, 0, D.cradleH, -iw, iw, M.hlm);
-    addBox(g, iw - t, iw, 0, D.cradleH, -iw, iw, M.hlm);
+    // HLM 5000 waterproofing (thin dark coat on the cradle walls — NOT the
+    // floor), pulled a hair off the cradle face: coincident faces z-fight
+    const t = 0.25, hO = iw - 0.03, hI = iw - t;
+    addBox(g, -hO, hO, 0, D.cradleH, hI, hO, M.hlm);
+    addBox(g, -hO, hO, 0, D.cradleH, -hO, -hI, M.hlm);
+    addBox(g, -hO, -hI, 0, D.cradleH, -hO, hO, M.hlm);
+    addBox(g, hI, hO, 0, D.cradleH, -hO, hO, M.hlm);
 
     // cradle rebar — buried in the cradle walls and floor; the section
     // cuts reveal it
@@ -745,8 +746,11 @@ function buildSite() {
 
 function buildFoam() {
     const g = new THREE.Group();
-    const sIn = (D.intW + 2 * D.wall) / 2;                     // 60 (outside of mikvah wall)
-    const sOut = sIn + D.foam;
+    // small gaps on every face — the foam used to share faces with the mikvah
+    // wall and the cradle, and even overlapped the HLM coat in volume;
+    // coincident faces z-fight and shimmer when you zoom around
+    const sIn = (D.intW + 2 * D.wall) / 2 + 0.04;              // just off the mikvah wall
+    const sOut = (D.intW + 2 * D.wall) / 2 + D.foam - 0.29;    // clear of the HLM coat
     addBox(g, -sOut, sOut, 0, D.cradleH, sIn, sOut, M.foam);
     addBox(g, -sOut, sOut, 0, D.cradleH, -sOut, -sIn, M.foam);
     addBox(g, -sOut, -sIn, 0, D.cradleH, -sIn, sIn, M.foam);
@@ -1138,7 +1142,7 @@ function buildWater() {
 /* =========================================================================
    STEP DEFINITIONS
    ========================================================================= */
-const wallName = () => state.coilWall === 'N' ? 'north' : 'west';
+const wallName = () => state.coilWall === 'N' ? 'front' : 'side';
 
 const STEPS = [
 {
@@ -1231,10 +1235,10 @@ const STEPS = [
         <p>Concrete is placed in a single continuous pour: <strong>four walls and the floor
         together</strong>. The floor is split into two halves:</p>
         <ul>
-            <li><strong>East half — massive.</strong> The floor is a solid
+            <li><strong>One half — massive.</strong> The floor is a solid
             <span class="dim">48&Prime;</span>-thick block of concrete, so the pool is only
             <span class="dim">5&prime;-0&Prime;</span> deep above it.</li>
-            <li><strong>West half — the bor.</strong> The pit drops to a full
+            <li><strong>The half under the stairs — the bor.</strong> The pit drops to a full
             <span class="dim">8&prime;-0&Prime;</span> below the rim. Around the top of the pit the
             wall steps in a few inches, forming a <strong>ledge</strong> at
             <span class="dim">42&Prime;</span> that will carry the floor poured above it.</li>
@@ -1305,8 +1309,8 @@ const STEPS = [
 {
     title: 'Pour the Steps',
     html: () => `
-        <p>The staircase is poured next, against the north wall, descending south along the
-        west wall — with the exact dimensions of the master model:</p>
+        <p>The staircase is poured next, against the front wall, descending along the
+        side wall — with the exact dimensions of the master model:</p>
         <ul>
             <li><span class="dim">7 steps</span>, <span class="dim">36&Prime;</span> wide,
             <span class="dim">10&Prime;</span> treads, <span class="dim">7&frac12;&Prime;</span> rise
@@ -1344,9 +1348,9 @@ const STEPS = [
         safely <strong>above the 51&ndash;52&Prime; water line</strong>. From there they run to the
         heating equipment.</p>
         ${state.coilWall === 'N' ? `
-        <div class="callout">On the <strong>north wall</strong> the coil is a simple serpentine —
+        <div class="callout">On the <strong>front wall</strong> the coil is a simple serpentine —
         straight runs right-to-left, turning back at each end, climbing row by row.</div>` : `
-        <div class="callout">On the <strong>west wall</strong> the void is triangular (the
+        <div class="callout">On the <strong>side wall</strong> the void is triangular (the
         stair soffit slopes down), so the coil can&rsquo;t be a plain rectangle. It&rsquo;s a
         custom-fabricated <span class="dim">&frac12;&Prime;</span> copper immersion heat
         exchanger (roughly <span class="dim">25&nbsp;m</span> of immersed pipe): hairpin runs

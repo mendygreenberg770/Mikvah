@@ -1103,33 +1103,39 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             }
         }
         // 7. HLM & Foam
+        // Both layers used to share faces with the cradle, the mikvah wall
+        // and each other (the foam even overlapped the HLM coat in volume) —
+        // coincident faces z-fight and shimmer when you zoom around. Every
+        // layer now keeps a small air gap on each side.
         if(vis.hlm && vis.walls) {
-            const t = 0.2;
+            const t = 0.2, e = 0.03;   // pulled a hair off the cradle face
             const mkCoat = (width, len, x, z) => {
                 const m = new THREE.Mesh(new THREE.BoxGeometry(width, h, len), materials.hlm);
                 m.position.set(x, h/2, z);
                 mainGroup.add(m);
             }
-            mkCoat(w, t, 0, l/2 - t/2);
-            mkCoat(w, t, 0, -(l/2 - t/2));
-            mkCoat(t, l, -(w/2 - t/2), 0);
-            mkCoat(t, l, (w/2 - t/2), 0);
+            mkCoat(w - 2*e, t, 0, l/2 - t/2 - e);
+            mkCoat(w - 2*e, t, 0, -(l/2 - t/2 - e));
+            mkCoat(t, l - 2*e, -(w/2 - t/2 - e), 0);
+            mkCoat(t, l - 2*e, (w/2 - t/2 - e), 0);
         }
         if(vis.foam && vis.walls) {
-            const mkF = (width, len, x, z) => {
-                const m = new THREE.Mesh(new THREE.BoxGeometry(width, h, len), materials.foam);
-                m.position.set(x, h/2, z);
+            // a band just off the mikvah wall, thin enough to stay clear of
+            // the HLM coat on the cradle side
+            const bandT = Math.max(0.08, foamThick - 0.35);
+            const inX = mikStructureW / 2 + 0.04, inZ = mikStructureL / 2 + 0.04;
+            const outX = inX + bandT, outZ = inZ + bandT;
+            const mkF = (x0, x1, z0, z1) => {
+                const ww = x1 - x0, ll = z1 - z0;
+                if (ww <= 0.01 || ll <= 0.01) return;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(ww, h, ll), materials.foam);
+                m.position.set((x0 + x1) / 2, h/2, (z0 + z1) / 2);
                 mainGroup.add(m);
             }
-            
-            const fW = mikStructureW + (2 * foamThick); 
-            const offsetW = (mikStructureW / 2) + (foamThick / 2);
-            const offsetL = (mikStructureL / 2) + (foamThick / 2);
-
-            mkF(fW, foamThick, 0, offsetL); 
-            mkF(fW, foamThick, 0, -offsetL); 
-            mkF(foamThick, mikStructureL, -offsetW, 0); 
-            mkF(foamThick, mikStructureL, offsetW, 0); 
+            mkF(-outX, outX, inZ, outZ);
+            mkF(-outX, outX, -outZ, -inZ);
+            mkF(-outX, -inX, -inZ, inZ);
+            mkF(inX, outX, -inZ, inZ);
         }
 
         // --- VARIABLES FOR TILES & MIKVAH FLOOR ---
@@ -1573,13 +1579,15 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                     p1.rotation.y = -Math.PI / 2;
                     p1.position.set(innerRight - offset, tileY, (botZt - realIntL / 2) / 2);
                     mainGroup.add(p1);
-                    const w2 = fInW - botZt;
-                    const m2 = new THREE.PlaneGeometry(w2, mH - soffTopW);
-                    scaleUVs(m2, w2, mH - soffTopW);
-                    const p2 = new THREE.Mesh(m2, materials.tiles);
-                    p2.rotation.y = -Math.PI / 2;
-                    p2.position.set(innerRight - offset, (mH + soffTopW) / 2, (botZt + fInW) / 2);
-                    mainGroup.add(p2);
+                    // tile down to each tread along the flight, so bare wall
+                    // remains only where the staircase itself conceals it
+                    // (the coil and indent stay inspectable underneath)
+                    for (let i = 0; i < params.stairCount - 1; i++) {
+                        const treadTop = (mH - params.stairFirstDrop) - i * params.stairRise;
+                        const z0 = fInW - (i + 1) * params.stairTread;
+                        mkTilePiece(params.stairTread, mH - treadTop, innerRight - offset,
+                            (mH + treadTop) / 2, z0 + params.stairTread / 2, -Math.PI / 2);
+                    }
                 } else {
                     mkTileWall(realIntL, 0, innerRight - offset, 0, -Math.PI/2);
                 }
