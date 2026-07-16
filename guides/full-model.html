@@ -475,7 +475,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     // per-field override flags: false = automatic, true = user forced a value
     const ovr = { cradleDepth: false, stairLastLen: false, stairLandingWidth: false };
     // resolver state (functions live in section 11 below)
-    const settings = { fitMode: 'ask', hideEarth: false };   // fitMode: ask | auto | warn
+    const settings = { fitMode: 'ask', hideEarth: false, showRoom: false };   // fitMode: ask | auto | warn
     const acceptedIssues = new Set();
     let resolveDepth = 0;
 
@@ -686,6 +686,10 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         cover: createMat(0xb0b0b0, 0.5), // Cement cover (Floor Above Bor)
         granite: createMat(0x505050, 0.4), // Bor Cover
         backfill: createMat(0x6b5b4e, 1.0), // Dirt/Backfill
+        roomFloor: createMat(0xdedad2, 0.9),
+        // room walls face inward only (dollhouse) — the camera always sees
+        // through the near wall into the room, never the bare outside
+        roomWall: new THREE.MeshStandardMaterial({ color: 0xe9e5dc, roughness: 1, clippingPlanes: clipPlanes }),
         tiles: new THREE.MeshStandardMaterial({
             map: mosaicTexture,
             roughness: 0.2,
@@ -1774,6 +1778,57 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             }
         }
 
+        // 9c. THE MIKVAH ROOM (experimental) — a one-floor room around the
+        // pool, measured from the edge of the WATER: 2'6" each side, 2'
+        // behind, 6' in front of the steps. A door mid-front plus one on
+        // each side wall 18" from the front. Walls face inward only, so
+        // every view looks INTO the room — the rest of the building is
+        // deliberately not modeled.
+        if (settings.showRoom) {
+            const rX = params.mikIntWidth / 2 + 30;
+            const zB = -(params.mikIntLength / 2 + 24);
+            const zF = params.mikIntLength / 2 + 72;
+            const fT = mH;                         // floor flush with the rim
+            const wallTop = mH + 96;               // 8' ceilings
+            const doorW = 36, doorH = 84;
+            // floor ring — leaves the concrete rim as a border around the water
+            const sx = mikStructureW / 2 + 0.05, sz = mikStructureL / 2 + 0.05;
+            const mkSlab = (x0, x1, z0, z1) => {
+                if (x1 - x0 <= 0.01 || z1 - z0 <= 0.01) return;
+                const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, fT - grade - 0.05, z1 - z0), materials.roomFloor);
+                m.position.set((x0 + x1) / 2, (grade + 0.05 + fT) / 2, (z0 + z1) / 2);
+                mainGroup.add(m);
+            };
+            mkSlab(-rX, rX, sz, zF);
+            mkSlab(-rX, rX, zB, -sz);
+            mkSlab(-rX, -sx, -sz, sz);
+            mkSlab(sx, rX, -sz, sz);
+            const mkPanel = (pw, ph, x, y, z, rotY) => {
+                if (pw <= 0.01 || ph <= 0.01) return;
+                const m = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), materials.roomWall);
+                m.rotation.y = rotY;
+                m.position.set(x, y, z);
+                mainGroup.add(m);
+            };
+            const wallH = wallTop - fT, midY = (fT + wallTop) / 2;
+            const lintelH = wallH - doorH, lintelY = fT + doorH + lintelH / 2;
+            // back wall — solid
+            mkPanel(2 * rX, wallH, 0, midY, zB, 0);
+            // front (entry) wall — door in the middle
+            const jamb = rX - doorW / 2;
+            mkPanel(jamb, wallH, -(doorW / 2 + jamb / 2), midY, zF, Math.PI);
+            mkPanel(jamb, wallH, doorW / 2 + jamb / 2, midY, zF, Math.PI);
+            mkPanel(doorW, lintelH, 0, lintelY, zF, Math.PI);
+            // side walls — a door 18" from the front wall on each side
+            const d1 = zF - 18 - doorW, d2 = zF - 18;
+            for (const s of [1, -1]) {
+                const rot = s === 1 ? -Math.PI / 2 : Math.PI / 2;
+                mkPanel(d1 - zB, wallH, s * rX, midY, (zB + d1) / 2, rot);
+                mkPanel(zF - d2, wallH, s * rX, midY, (d2 + zF) / 2, rot);
+                mkPanel(doorW, lintelH, s * rX, lintelY, (d1 + d2) / 2, rot);
+            }
+        }
+
         // 10. BACKFILL — earth returned ONLY into the over-dig ring between
         // the built structure and the excavation walls, up to grade
         if (vis.backfill && !settings.hideEarth) {
@@ -2162,6 +2217,13 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         v => { settings.fitMode = { 'Ask me': 'ask', 'Auto-fix': 'auto', 'Just warn me': 'warn' }[v]; resolveIssues(); });
     checkField(voBody, vis, 'dims', 'Show dimensions', () => { updateDimVisibility(); build(); });
     checkField(voBody, settings, 'hideEarth', 'Hide the earth (float the model)', build);
+    checkField(voBody, settings, 'showRoom', 'Room around the mikvah (try it)', () => {
+        build();
+        if (settings.showRoom) flyTo({
+            pos: [params.mikIntWidth / 2 + 210, params.mikIntHeight + 190, params.mikIntLength / 2 + 300],
+            tgt: [0, params.mikIntHeight - 20, 0]
+        });
+    });
     {
         const gl = document.createElement('div');
         gl.className = 'group-label';
