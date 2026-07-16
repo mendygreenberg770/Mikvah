@@ -2206,6 +2206,11 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     const FILLED = { ...BASE, backfill: 1 };
     const POURED = { ...FILLED, mikFloor: 1, mikWalls: 1 };
 
+    // mirror a camera across x when the bor (and the stairs) sit on the left
+    const mirrorCam = (pos, tgt) => () => params.borSide === 'Left'
+        ? { pos: [-pos[0], pos[1], pos[2]], tgt: [-tgt[0], tgt[1], tgt[2]] }
+        : { pos, tgt };
+
     const MSTEPS = [
         { title: 'The Site', h2: 'The Site',
           html: '<p>A piece of open ground \u2014 this is where the mikvah will go.</p><div class="callout">Want to watch the whole build assemble itself? Jump to the last step, <b>Explore</b>, and press <b>\u25b6 Play build animation</b>.</div>',
@@ -2234,11 +2239,11 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         { title: 'Floor Above Bor', h2: 'Floor Above the Bor + Cover',
           html: '<p>The floor is poured on top of the ledge, closing the bor except for the rabbeted access hole. The <b>granite cover</b> with its two holes drops in flush.</p>',
           flags: { ...POURED, floorAboveBor: 1, borCover: 1 },
-          cam: { pos: [110, 290, -85], tgt: [25, 45, 25] } },
+          cam: mirrorCam([110, 290, -85], [25, 45, 25]) },
         { title: 'Stairs', h2: 'Pour the Steps',
           html: '<p>The staircase is poured next. The flight is a sloped slab, so there\u2019s an <b>open void underneath</b> — exactly where the heating coil will hide.</p>',
           flags: { ...POURED, floorAboveBor: 1, borCover: 1, stairs: 1 },
-          cam: { pos: [-150, 290, -130], tgt: [20, 60, 10] } },
+          cam: mirrorCam([-150, 290, -130], [20, 60, 10]) },
         { title: 'Heating Coils', h2: 'Install the Heating Coils',
           html: '<p>The coil hangs in the void under the steps. Its pipes climb the cast-in <b>indent</b> and cross the wall <b>above the 51\u201352\u2033 water line</b> — no penetration below the water, and the indent stays inspectable.</p><p>For the full step-by-step explanation, see the <a href="heating-coils.html">Hidden Heating Coils guide</a>.</p>',
           flags: { ...POURED, floorAboveBor: 1, borCover: 1, stairs: 1, heatingCoils: 1 },
@@ -2249,7 +2254,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         { title: 'Tile & Fill', h2: 'Tile, Then Fill With Water',
           html: '<p>Blue mosaic on the floor, walls, and stairs — then the mikvah fills to its <b>51\u201352\u2033</b> working depth, and the bor fills through the cover holes.</p>',
           flags: ALL_ON,
-          cam: { pos: [190, 170, 200], tgt: [0, 70, 0] } },
+          cam: mirrorCam([-150, 290, -130], [20, 60, 10]) },
         { title: 'Explore', h2: 'Explore Freely',
           html: '<p>Play the full build animation, or show and hide any element to understand how the pieces fit. Use the <b>View Options</b> panel (top right) for dimensions and section cuts.</p>',
           keepVis: true, mount: exploreWrap,
