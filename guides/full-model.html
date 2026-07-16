@@ -521,6 +521,11 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     fillLight.position.set(-150, 200, -200);
     scene.add(fillLight);
 
+    // warm interior light for room mode — build() positions and toggles it
+    const roomLight = new THREE.PointLight(0xffe2bb, 0.8, 1400, 1.0);
+    roomLight.visible = false;
+    scene.add(roomLight);
+
     // --- 4. CLIPPING & MATERIALS ---
     const clipPlanes = [
         new THREE.Plane(new THREE.Vector3(1, 0, 0), 2000),
@@ -718,6 +723,15 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             roughness: 0.35, metalness: 0.04,
             side: THREE.DoubleSide, clippingPlanes: clipPlanes
         }),
+        // room-mode finish palette (reference: warm stone + brushed gold)
+        gold: new THREE.MeshStandardMaterial({ color: 0xd9b67e, metalness: 0.45, roughness: 0.38, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
+        archStone: new THREE.MeshStandardMaterial({ color: 0xf0e5cf, roughness: 0.9, clippingPlanes: clipPlanes }),
+        goldFlat: new THREE.MeshStandardMaterial({ color: 0xd9b67e, metalness: 0.45, roughness: 0.38, clippingPlanes: clipPlanes }),
+        chrome: new THREE.MeshStandardMaterial({ color: 0xd6dce1, metalness: 0.55, roughness: 0.28, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
+        doorLeaf: new THREE.MeshStandardMaterial({ color: 0xe6dfd2, roughness: 0.75, clippingPlanes: clipPlanes }),
+        glowWarm: new THREE.MeshBasicMaterial({ color: 0xffedc9, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
+        glowWhite: new THREE.MeshBasicMaterial({ color: 0xf2f8ff, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
+        haze: new THREE.MeshBasicMaterial({ color: 0xfff3d8, transparent: true, opacity: 0.3, side: THREE.DoubleSide, clippingPlanes: clipPlanes }),
         tiles: new THREE.MeshStandardMaterial({
             map: mosaicTexture,
             roughness: 0.2,
@@ -963,6 +977,12 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         labels.length = 0;
 
         // --- LAYOUT MIRRORING ---
+        // room mode: you're indoors — no outdoors, warm backdrop and light
+        scene.background.set(settings.showRoom ? 0xece6db : 0xeef1f4);
+        if (scene.fog) scene.fog.color.copy(scene.background);
+        roomLight.visible = !!settings.showRoom;
+        if (settings.showRoom) roomLight.position.set(0, params.mikIntHeight + 80, 20);
+
         const mirror = (params.borSide === 'Left') ? -1 : 1;
         mainGroup.scale.set(mirror, 1, 1);
 
@@ -1014,7 +1034,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         const pitX = floorW / 2 + 24, pitZ = floorL / 2 + 24;   // 24" over-dig
         const pitBot = -15 - grav;
         const EARTH = 420;                                       // how far the land extends
-        if (vis.ground && !settings.hideEarth) {
+        if (vis.ground && !settings.hideEarth && !settings.showRoom) {
             // undisturbed land wears a thin skin of grass; the pit walls and
             // the backfill ring stay bare dirt
             const mkBlock = (x0, x1, y0, y1, z0, z1, mat) => {
@@ -1863,9 +1883,31 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             };
             const wallH = wallTop - fT, midY = (fT + wallTop) / 2;
             const lintelH = wallH - doorH, lintelY = fT + doorH + lintelH / 2;
-            // back wall — solid
+            const mkBox = (mat, w1, h1, l1, x, y, z) => {
+                const m = new THREE.Mesh(new THREE.BoxGeometry(w1, h1, l1), mat);
+                m.position.set(x, y, z);
+                mainGroup.add(m);
+                return m;
+            };
+            // back wall — feature wall with three gold-trimmed arch niches
             mkPanel(2 * rX, wallH, 0, midY, zB, 0);
             mkBase(-rX, rX, zB, zB + bbT);
+            const archShape = (hw, hs) => {
+                const s = new THREE.Shape();
+                s.moveTo(-hw, 0); s.lineTo(-hw, hs);
+                s.absarc(0, hs, hw, Math.PI, 0, true);
+                s.lineTo(hw, 0); s.closePath();
+                return s;
+            };
+            const aw = 15, gap = Math.max(aw * 2 + 4, Math.min(48, rX - aw - 10));
+            for (const cx of [-gap, 0, gap]) {
+                const g1 = new THREE.Mesh(new THREE.ShapeGeometry(archShape(aw, 46)), materials.goldFlat);
+                g1.position.set(cx, fT + 10, zB + 0.15);
+                mainGroup.add(g1);
+                const g2 = new THREE.Mesh(new THREE.ShapeGeometry(archShape(aw - 1.5, 44.6)), materials.archStone);
+                g2.position.set(cx, fT + 11.2, zB + 0.3);
+                mainGroup.add(g2);
+            }
             // front (entry) wall — door in the middle
             const jamb = rX - doorW / 2;
             mkPanel(jamb, wallH, -(doorW / 2 + jamb / 2), midY, zF, Math.PI);
@@ -1883,16 +1925,102 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                 mkBase(s * rX - (s === 1 ? bbT : 0), s * rX + (s === 1 ? 0 : bbT), zB, d1);
                 mkBase(s * rX - (s === 1 ? bbT : 0), s * rX + (s === 1 ? 0 : bbT), d2, zF);
             }
+            // door leaves (cream, gold lever) sitting just past each opening
+            const frontDoor = new THREE.Mesh(new THREE.PlaneGeometry(doorW - 1.5, doorH - 1), materials.doorLeaf);
+            frontDoor.rotation.y = Math.PI;
+            frontDoor.position.set(0, fT + doorH / 2, zF + 0.6);
+            mainGroup.add(frontDoor);
+            mkBox(materials.gold, 5, 1.1, 1.1, doorW / 2 - 6, fT + 38, zF + 0.2);
+            for (const s of [1, -1]) {
+                const leaf = new THREE.Mesh(new THREE.PlaneGeometry(doorW - 1.5, doorH - 1), materials.doorLeaf);
+                leaf.rotation.y = s === 1 ? -Math.PI / 2 : Math.PI / 2;
+                leaf.position.set(s * (rX + 0.6), fT + doorH / 2, (d1 + d2) / 2);
+                mainGroup.add(leaf);
+                mkBox(materials.gold, 1.1, 1.1, 5, s * (rX + 0.2), fT + 38, d1 + 6);
+            }
+            // gold sconces with a warm glow on the side walls
+            for (const s of [1, -1]) for (const t of [0.3, 0.6]) {
+                const z = zB + (zF - zB) * t;
+                mkBox(materials.gold, 1.4, 13, 1.4, s * (rX - 0.8), fT + 58, z);
+                const gl = new THREE.Mesh(new THREE.SphereGeometry(2.6, 10, 8), materials.glowWarm);
+                gl.position.set(s * (rX - 1.4), fT + 66, z);
+                mainGroup.add(gl);
+            }
             // ceiling — faces down only, so overhead views still see in
             const ceil = new THREE.Mesh(new THREE.PlaneGeometry(2 * rX, zF - zB), materials.roomCeil);
             ceil.rotation.x = Math.PI / 2;
             ceil.position.set(0, wallTop, (zB + zF) / 2);
             mainGroup.add(ceil);
+            // recessed dome over the water: gold rim, cove glow, mosaic cap
+            const R = Math.min(rX, (zF - zB) / 2) * 0.62;
+            const rim = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 7, 44, 1, true), materials.gold);
+            rim.position.set(0, wallTop + 3.5, 0);
+            mainGroup.add(rim);
+            const cove = new THREE.Mesh(new THREE.RingGeometry(R - 2.2, R + 0.4, 44), materials.glowWarm);
+            cove.rotation.x = Math.PI / 2;
+            cove.position.set(0, wallTop + 0.25, 0);
+            mainGroup.add(cove);
+            const cap = new THREE.Mesh(new THREE.CircleGeometry(R, 44), materials.porcelain);
+            cap.rotation.x = Math.PI / 2;
+            cap.position.set(0, wallTop + 7, 0);
+            mainGroup.add(cap);
+            // chandelier under the dome
+            mkBox(materials.gold, 0.8, 22, 0.8, 0, wallTop - 11, 0);
+            const cluster = new THREE.Mesh(new THREE.SphereGeometry(6.5, 12, 10), materials.glowWarm);
+            cluster.position.set(0, wallTop - 26, 0);
+            mainGroup.add(cluster);
+            const halo = new THREE.Mesh(new THREE.SphereGeometry(10, 12, 10), materials.haze);
+            halo.position.set(0, wallTop - 26, 0);
+            mainGroup.add(halo);
+            // recessed spot lights along the ceiling edges
+            for (const s of [1, -1]) for (let i = 0; i < 3; i++) {
+                const z = zB + (zF - zB) * (0.2 + 0.3 * i);
+                const spot = new THREE.Mesh(new THREE.CircleGeometry(1.7, 14), materials.glowWarm);
+                spot.rotation.x = Math.PI / 2;
+                spot.position.set(s * (rX - 14), wallTop - 0.2, z);
+                mainGroup.add(spot);
+            }
+            // soft LED strip around the waterline, under the coping
+            const ledY = mH - 1.1, ledH = 0.8, ledT = 0.35;
+            mkBox(materials.glowWhite, 2 * wx - 1, ledH, ledT, 0, ledY, wz - 0.4);
+            mkBox(materials.glowWhite, 2 * wx - 1, ledH, ledT, 0, ledY, -(wz - 0.4));
+            mkBox(materials.glowWhite, ledT, ledH, 2 * wz - 1, wx - 0.4, ledY, 0);
+            mkBox(materials.glowWhite, ledT, ledH, 2 * wz - 1, -(wx - 0.4), ledY, 0);
+            // chrome handrail descending the steps
+            if (vis.stairs && params.stairCount > 1) {
+                const xr = wx - params.stairLen + 5;
+                const fd = params.stairFirstDrop, rs = params.stairRise, td = params.stairTread;
+                const railTube = (a, b, r) => {
+                    const av = new THREE.Vector3(...a), bv = new THREE.Vector3(...b);
+                    const d = bv.clone().sub(av), len = d.length();
+                    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 10), materials.chrome);
+                    m.position.copy(av).addScaledVector(d, 0.5);
+                    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+                    mainGroup.add(m);
+                };
+                const z1 = wz - 5, z2 = wz - 5 - 3 * td;
+                const y1 = mH - fd, y2 = mH - fd - 3 * rs;
+                railTube([xr, y1, z1], [xr, mH + 34, z1], 0.7);
+                railTube([xr, y2, z2], [xr, mH + 34 - 3 * rs, z2], 0.7);
+                railTube([xr, mH + 34, z1 + 3], [xr, mH + 34 - 3 * rs, z2 - 3], 0.8);
+            }
+            // potted plants in the back corners
+            for (const s of [1, -1]) {
+                const px2 = s * (rX - 15), pz2 = zB + 14;
+                const pot = new THREE.Mesh(new THREE.CylinderGeometry(6.5, 5.5, 13, 12), materials.roomFloor);
+                pot.position.set(px2, fT + 6.5, pz2);
+                mainGroup.add(pot);
+                for (const [dx, dy2, dz, r] of [[0, 22, 0, 9], [-4, 30, 2, 6.5], [4, 34, -2, 6]]) {
+                    const fo = new THREE.Mesh(new THREE.SphereGeometry(r, 9, 7), materials.treeLeaf2);
+                    fo.position.set(px2 + dx, fT + dy2, pz2 + dz);
+                    mainGroup.add(fo);
+                }
+            }
         }
 
         // 10. BACKFILL — earth returned ONLY into the over-dig ring between
         // the built structure and the excavation walls, up to grade
-        if (vis.backfill && !settings.hideEarth) {
+        if (vis.backfill && !settings.hideEarth && !settings.showRoom) {
             const mkFill = (x0, x1, y0, y1, z0, z1) => {
                 if (x1 - x0 <= 0.01 || y1 - y0 <= 0.01 || z1 - z0 <= 0.01) return;
                 const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), materials.backfill);
@@ -2289,7 +2417,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             // stand in the entry area at eye level, looking across the water,
             // and keep the orbit focused inside the room
             const mH = params.mikIntHeight, zF = params.mikIntLength / 2 + 72;
-            flyTo({ pos: [params.mikIntWidth / 2 + 14, mH + 66, zF - 8], tgt: [-6, mH + 8, -params.mikIntLength / 4] });
+            flyTo({ pos: [params.mikIntWidth / 2 + 26, mH + 70, zF - 2], tgt: [-6, mH + 28, -params.mikIntLength / 2] });
             controls.maxDistance = 330;
         } else {
             controls.maxDistance = Infinity;
