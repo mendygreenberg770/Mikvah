@@ -494,6 +494,9 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     // --- 2. SCENE SETUP ---
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xeef1f4);
+    // distance fog so the edge of the land fades away instead of ending
+    // in a hard floating-island edge
+    scene.fog = new THREE.Fog(0xeef1f4, 900, 2200);
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
     camera.position.set(280, 350, 280);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, stencil: true });
@@ -665,6 +668,10 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
 
     const materials = {
         ground: createMat(0x5c4033, 1),
+        grass: createMat(0x649455, 1),
+        treeTrunk: createMat(0x6b4a2e, 1),
+        treeLeaf: createMat(0x4a7d44, 1),
+        treeLeaf2: createMat(0x5d8b4b, 1),
         gravel: createMat(0x666655, 1),
         concrete: createMat(0x9e9e9e, 0.6), // Cradle
         mikvahConcrete: createMat(0xcfcfcf, 0.5), // Inner Pour
@@ -976,20 +983,58 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         const pitBot = -15 - grav;
         const EARTH = 420;                                       // how far the land extends
         if (vis.ground && !settings.hideEarth) {
-            const mkEarth = (x0, x1, y0, y1, z0, z1) => {
-                const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), materials.ground);
+            // undisturbed land wears a thin skin of grass; the pit walls and
+            // the backfill ring stay bare dirt
+            const mkBlock = (x0, x1, y0, y1, z0, z1, mat) => {
+                const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), mat);
                 m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
                 mainGroup.add(m);
             };
-            mkEarth(-EARTH, EARTH, pitBot - 20, pitBot, -EARTH, EARTH);  // earth under the pit
+            const gT = 1.4;   // grass thickness
+            const mkEarth = (x0, x1, z0, z1) => {
+                mkBlock(x0, x1, pitBot, grade - gT, z0, z1, materials.ground);
+                mkBlock(x0, x1, grade - gT + 0.05, grade, z0, z1, materials.grass);
+            };
+            mkBlock(-EARTH, EARTH, pitBot - 20, pitBot, -EARTH, EARTH, materials.ground);  // under the pit
             if (vis.excavation) {
-                mkEarth(-EARTH, -pitX, pitBot, grade, -EARTH, EARTH);
-                mkEarth(pitX, EARTH, pitBot, grade, -EARTH, EARTH);
-                mkEarth(-pitX, pitX, pitBot, grade, pitZ, EARTH);
-                mkEarth(-pitX, pitX, pitBot, grade, -EARTH, -pitZ);
+                mkEarth(-EARTH, -pitX, -EARTH, EARTH);
+                mkEarth(pitX, EARTH, -EARTH, EARTH);
+                mkEarth(-pitX, pitX, pitZ, EARTH);
+                mkEarth(-pitX, pitX, -EARTH, -pitZ);
+                // the spoil pile — the dug-out earth waits beside the hole
+                // until it goes back in as backfill
+                if (!vis.backfill) {
+                    const mound = new THREE.Mesh(new THREE.ConeGeometry(64, 36, 12), materials.ground);
+                    mound.position.set(-205, grade + 18, 70);
+                    mainGroup.add(mound);
+                    const mound2 = new THREE.Mesh(new THREE.ConeGeometry(38, 22, 10), materials.ground);
+                    mound2.position.set(-198, grade + 11, -85);
+                    mainGroup.add(mound2);
+                }
             } else {
-                mkEarth(-EARTH, EARTH, pitBot, grade, -EARTH, EARTH);    // untouched land
+                mkEarth(-EARTH, EARTH, -EARTH, EARTH);    // untouched land
             }
+            // trees and bushes around the site (fixed spots, clear of the pit)
+            const tree = (x, z, s, round) => {
+                const tr = new THREE.Mesh(new THREE.CylinderGeometry(2.2 * s, 3 * s, 26 * s, 8), materials.treeTrunk);
+                tr.position.set(x, grade + 13 * s, z);
+                mainGroup.add(tr);
+                const fo = round
+                    ? new THREE.Mesh(new THREE.SphereGeometry(17 * s, 10, 8), materials.treeLeaf2)
+                    : new THREE.Mesh(new THREE.ConeGeometry(15 * s, 44 * s, 9), materials.treeLeaf);
+                fo.position.set(x, round ? grade + 36 * s : grade + 24 * s + 22 * s, z);
+                mainGroup.add(fo);
+            };
+            tree(-310, -230, 1.15); tree(-345, 90, 0.9, true); tree(-250, 320, 1.05);
+            tree(300, -300, 1.0, true); tree(360, -60, 1.2); tree(240, 340, 0.85);
+            tree(60, -340, 0.95, true); tree(-120, -320, 0.8);
+            const bush = (x, z, r) => {
+                const b = new THREE.Mesh(new THREE.SphereGeometry(r, 9, 7), materials.treeLeaf2);
+                b.position.set(x, grade + r * 0.55, z);
+                mainGroup.add(b);
+            };
+            bush(-200, -270, 8); bush(330, 140, 9); bush(-320, 210, 7);
+            bush(150, -290, 6); bush(-290, -60, 7); bush(315, 250, 8);
         }
 
         // 2. Gravel
@@ -1887,9 +1932,9 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         await wait(800); vis.walls = true; build();
         await wait(500); vis.hlm = true; build();
         await wait(500); vis.foam = true; build();
+        await wait(700); vis.backfill = true; build();               // fill the over-dig ring
         // the mikvah floor and walls pour MONOLITHICALLY — one shot, together
         await wait(800); vis.mikFloor = true; vis.mikWalls = true; build();
-        await wait(700); vis.backfill = true; build();               // fill the over-dig ring
 
         if(floorBorWasOn) { await wait(600); vis.floorAboveBor = true; build(); }
         if(coverWasOn) { await wait(600); vis.borCover = true; build(); }
@@ -2158,17 +2203,18 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         mikFloor: 1, mikWalls: 1, backfill: 1, floorAboveBor: 1, borCover: 1, stairs: 1, heatingCoils: 1,
         tiles: 1, waterBor: 1, waterMikvah: 1 };
     const BASE = { ground: 1, excavation: 1, gravel: 1, floor: 1, keys: 1, waterstop: 1, walls: 1, hlm: 1, foam: 1 };
-    const POURED = { ...BASE, mikFloor: 1, mikWalls: 1 };
+    const FILLED = { ...BASE, backfill: 1 };
+    const POURED = { ...FILLED, mikFloor: 1, mikWalls: 1 };
 
     const MSTEPS = [
         { title: 'The Site', h2: 'The Site',
           html: '<p>A piece of open ground \u2014 this is where the mikvah will go.</p><div class="callout">Want to watch the whole build assemble itself? Jump to the last step, <b>Explore</b>, and press <b>\u25b6 Play build animation</b>.</div>',
           flags: { ground: 1 },
-          cam: { pos: [340, 300, 340], tgt: [0, 60, 0] } },
+          cam: { pos: [430, 420, 430], tgt: [0, 10, 0] } },
         { title: 'Excavate', h2: 'Excavate',
           html: '<p>Dig the pit <b>bigger than the build</b> \u2014 about 2\u2032 of extra room on every side. You always dig more than the finished footprint: the crew needs space to set the gravel, form the cradle, and work the walls. Everything gets built down inside this hole.</p>',
           flags: { ground: 1, excavation: 1 },
-          cam: { pos: [290, 320, 290], tgt: [0, 10, 0] } },
+          cam: { pos: [380, 340, 380], tgt: [-40, 0, -40] } },
         { title: 'Gravel', h2: 'The Gravel Bed',
           html: '<p>Level the bottom of the pit and lay a bed of <b>gravel</b> \u2014 the base everything else sits on.</p>',
           flags: { ground: 1, excavation: 1, gravel: 1 },
@@ -2177,25 +2223,25 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
           html: '<p>The cradle is built on top of the gravel: a reinforced concrete tub — floor and walls — with a <b>waterstop</b> ribbon at the base joint, <b>HLM 5000</b> waterproofing on the walls, and a \u00bd\u2033 <b>foam liner</b> separating the mikvah\u2019s concrete from the cradle: another layer of protection against leaks.</p>',
           flags: BASE,
           cam: { pos: [220, 300, 220], tgt: [0, 30, 0] } },
+        { title: 'Backfill', h2: 'Backfill the Over-dig',
+          html: '<p>With the cradle built, earth goes back <b>only into the working gap</b> between the cradle and the pit walls, up to grade. The dug-out pile beside the hole disappears back into the ground \u2014 so by the time the main pour happens, the site is already solid again.</p>',
+          flags: FILLED,
+          cam: { pos: [270, 260, 270], tgt: [0, 70, 0] } },
         { title: 'The Pour', h2: 'The Monolithic Pour',
           html: '<p>The mikvah itself: <b>all four walls and the floor poured in one shot</b>, monolithically — no cold joints below the water line. The thick half carries the pool; the other half drops to the <b>bor</b> with its ledge.</p><div class="callout">The recessed <b>indent</b> for the heating pipes is cast right into the wall during this pour — you can see the channel near where the stairs will land.</div>',
           flags: POURED,
           cam: { pos: [230, 300, 230], tgt: [0, 50, 0] } },
-        { title: 'Backfill', h2: 'Backfill the Over-dig',
-          html: '<p>With the shell cured, earth goes back <b>only into the working gap</b> between the structure and the pit walls, up to grade. The site reads solid again \u2014 the mikvah rim stands just above the ground, and everything below is buried.</p>',
-          flags: { ...POURED, backfill: 1 },
-          cam: { pos: [270, 260, 270], tgt: [0, 70, 0] } },
         { title: 'Floor Above Bor', h2: 'Floor Above the Bor + Cover',
           html: '<p>The floor is poured on top of the ledge, closing the bor except for the rabbeted access hole. The <b>granite cover</b> with its two holes drops in flush.</p>',
-          flags: { ...POURED, backfill: 1, floorAboveBor: 1, borCover: 1 },
+          flags: { ...POURED, floorAboveBor: 1, borCover: 1 },
           cam: { pos: [110, 290, -85], tgt: [25, 45, 25] } },
         { title: 'Stairs', h2: 'Pour the Steps',
           html: '<p>The staircase is poured next. The flight is a sloped slab, so there\u2019s an <b>open void underneath</b> — exactly where the heating coil will hide.</p>',
-          flags: { ...POURED, backfill: 1, floorAboveBor: 1, borCover: 1, stairs: 1 },
+          flags: { ...POURED, floorAboveBor: 1, borCover: 1, stairs: 1 },
           cam: { pos: [-150, 290, -130], tgt: [20, 60, 10] } },
         { title: 'Heating Coils', h2: 'Install the Heating Coils',
           html: '<p>The coil hangs in the void under the steps. Its pipes climb the cast-in <b>indent</b> and cross the wall <b>above the 51\u201352\u2033 water line</b> — no penetration below the water, and the indent stays inspectable.</p><p>For the full step-by-step explanation, see the <a href="heating-coils.html">Hidden Heating Coils guide</a>.</p>',
-          flags: { ...POURED, backfill: 1, floorAboveBor: 1, borCover: 1, stairs: 1, heatingCoils: 1 },
+          flags: { ...POURED, floorAboveBor: 1, borCover: 1, stairs: 1, heatingCoils: 1 },
           mount: coilWrap,
           cam: () => params.coilWall === 'Front wall'
               ? { pos: [-38, 78, -40], tgt: [params.mikIntWidth / 2 - params.stairLen + 6, 75, params.mikIntLength / 2 - 2] }
@@ -2530,6 +2576,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         }
     }
 
+    window.__dbg = { scene, materials, vis, params, settings };   // console debugging aid
     setTimeout(() => goToStep(0), 0);   // controls are created just below
 
     // --- LOOP ---
