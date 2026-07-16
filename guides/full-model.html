@@ -483,13 +483,14 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     scene.background = new THREE.Color(0xeef1f4);
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
     camera.position.set(280, 350, 280);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, stencil: true });
     const host = document.getElementById('canvasHost');
     renderer.localClippingEnabled = true;
     host.appendChild(renderer.domElement);
     function sizeToHost() {
         camera.aspect = host.clientWidth / host.clientHeight;
         camera.updateProjectionMatrix();
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.setSize(host.clientWidth, host.clientHeight);
     }
     sizeToHost();
@@ -511,6 +512,94 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         new THREE.Plane(new THREE.Vector3(0, 0, 1), 2000),
         new THREE.Plane(new THREE.Vector3(0, 0, -1), 2000)
     ];
+
+    // --- CAPPED SECTION CUTS ---
+    // GPU clipping alone leaves cut solids looking hollow — you see the inside
+    // back faces of every box. For each active cut plane we mark the true
+    // cross-section in the stencil buffer (back faces increment, front faces
+    // decrement, so only pixels that are "inside" a solid stay non-zero) and
+    // draw a flat cap there in the material's own color, slightly darkened.
+    // The cut then reads like a real architectural section.
+    const capsGroup = new THREE.Group();
+    scene.add(capsGroup);
+    const capExclude = new Set();   // open-ended geometry (tubes) can't be capped
+    let capsActiveKey = null;
+    const planeActive = p => p.constant < 1950;
+
+    function rebuildCaps() {
+        capsGroup.clear();
+        const active = clipPlanes.filter(planeActive);
+        capsActiveKey = clipPlanes.map(p => planeActive(p) ? '1' : '0').join('');
+        if (!active.length) return;
+        const byMat = new Map();
+        mainGroup.updateMatrixWorld(true);
+        mainGroup.traverse(o => {
+            if (!o.isMesh || !o.material || o.material.transparent) return;
+            if (!o.material.clippingPlanes || !o.material.clippingPlanes.length) return;
+            if (capExclude.has(o.material)) return;
+            // flat geometry isn't a closed volume — it would poison the
+            // inside/outside count and smear its cap across the screen
+            if (o.geometry.type === 'ShapeGeometry' || o.geometry.type === 'PlaneGeometry') return;
+            if (!byMat.has(o.material)) byMat.set(o.material, []);
+            byMat.get(o.material).push(o);
+        });
+        let order = 1;
+        for (const plane of active) {
+            const others = clipPlanes.filter(p => p !== plane);
+            for (const [mat, meshes] of byMat) {
+                const mkStencil = (side, op) => new THREE.MeshBasicMaterial({
+                    side, clippingPlanes: [plane],
+                    depthWrite: false, depthTest: false, colorWrite: false,
+                    stencilWrite: true, stencilFunc: THREE.AlwaysStencilFunc,
+                    stencilFail: op, stencilZFail: op, stencilZPass: op
+                });
+                const stencilMats = [
+                    mkStencil(THREE.BackSide, THREE.IncrementWrapStencilOp),
+                    mkStencil(THREE.FrontSide, THREE.DecrementWrapStencilOp)
+                ];
+                for (const src of meshes) {
+                    for (const sMat of stencilMats) {
+                        const sm = new THREE.Mesh(src.geometry, sMat);
+                        sm.matrixAutoUpdate = false;
+                        sm.matrix.copy(src.matrixWorld);
+                        sm.renderOrder = order;
+                        capsGroup.add(sm);
+                    }
+                }
+                const capColor = mat.map
+                    ? new THREE.Color(0xc9ced3)                    // tiled surfaces cut to grout gray
+                    : mat.color.clone().multiplyScalar(0.82);
+                const cap = new THREE.Mesh(
+                    new THREE.PlaneGeometry(3000, 3000),
+                    new THREE.MeshStandardMaterial({
+                        color: capColor, roughness: 0.85, metalness: 0,
+                        side: THREE.DoubleSide, clippingPlanes: others,
+                        stencilWrite: true, stencilRef: 0,
+                        stencilFunc: THREE.NotEqualStencilFunc,
+                        stencilFail: THREE.ReplaceStencilOp,
+                        stencilZFail: THREE.ReplaceStencilOp,
+                        stencilZPass: THREE.ReplaceStencilOp
+                    }));
+                cap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), plane.normal);
+                cap.position.copy(plane.normal).multiplyScalar(-plane.constant);
+                cap.userData.plane = plane;
+                cap.renderOrder = order + 0.05;
+                cap.onAfterRender = r => r.clearStencil();
+                capsGroup.add(cap);
+                order++;
+            }
+        }
+    }
+
+    // cheap path for slider drags: same planes active, just moved
+    function updateCaps() {
+        const key = clipPlanes.map(p => planeActive(p) ? '1' : '0').join('');
+        if (key !== capsActiveKey) { rebuildCaps(); return; }
+        for (const o of capsGroup.children) {
+            const p = o.userData.plane;
+            if (p) o.position.copy(p.normal).multiplyScalar(-p.constant);
+        }
+    }
 
     // --- GENERATE MOSAIC TEXTURE ---
     function createMosaicTexture() {
@@ -595,9 +684,13 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             side: THREE.DoubleSide,
             clippingPlanes: clipPlanes
         }),
-        dimLine: new THREE.LineBasicMaterial({ color: 0x002266 }), 
+        dimLine: new THREE.LineBasicMaterial({ color: 0x002266 }),
         dimText: new THREE.MeshBasicMaterial({ color: 0x000000 })
+        // note: rebar/copper are excluded from section caps below — tube
+        // geometry is open-ended, which breaks the stencil inside/outside count
     };
+    capExclude.add(materials.rebar);
+    capExclude.add(materials.copper);
 
     // --- 5. STATE MANAGEMENT ---
     const params = {
@@ -1617,8 +1710,9 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             mkFill(ow, upperH, (fillSize - ol)/2, 0, upperY, (ol + fillSize)/4);
             mkFill(ow, upperH, (fillSize - ol)/2, 0, upperY, -(ol + fillSize)/4);
         }
-        
+
         updateDimVisibility();
+        rebuildCaps();
     }
 
     // --- 7. INPUT HANDLING ---
@@ -1992,6 +2086,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         clipPlanes[2].constant = clipParams.z;
         clipPlanes[3].constant = clipParams.nz;
         updateDimVisibility();
+        updateCaps();
     };
     [['x', 'Right \u2192 left'], ['nx', 'Left \u2192 right'], ['z', 'Front \u2192 back'], ['nz', 'Back \u2192 front']]
     .forEach(([k, label]) => {
