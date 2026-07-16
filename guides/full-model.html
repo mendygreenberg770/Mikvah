@@ -1986,9 +1986,9 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             mkBox(materials.glowWhite, 2 * wx - 1, ledH, ledT, 0, ledY, -(wz - 0.4));
             mkBox(materials.glowWhite, ledT, ledH, 2 * wz - 1, wx - 0.4, ledY, 0);
             mkBox(materials.glowWhite, ledT, ledH, 2 * wz - 1, -(wx - 0.4), ledY, 0);
-            // chrome handrail descending the steps
+            // chrome handrail — mounted to the CONCRETE SIDE of the flight
+            // (bracket stubs into the side face), never standing on treads
             if (vis.stairs && params.stairCount > 1) {
-                const xr = wx - params.stairLen + 5;
                 const fd = params.stairFirstDrop, rs = params.stairRise, td = params.stairTread;
                 const railTube = (a, b, r) => {
                     const av = new THREE.Vector3(...a), bv = new THREE.Vector3(...b);
@@ -1998,11 +1998,27 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                     m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
                     mainGroup.add(m);
                 };
-                const z1 = wz - 5, z2 = wz - 5 - 3 * td;
+                const sideX = wx - params.stairLen;      // exposed side face of the flight
+                const rx2 = sideX - 1.3;                 // rail line just off the concrete
+                const z1 = wz - 6, z2 = wz - 6 - 3 * td;
                 const y1 = mH - fd, y2 = mH - fd - 3 * rs;
-                railTube([xr, y1, z1], [xr, mH + 34, z1], 0.7);
-                railTube([xr, y2, z2], [xr, mH + 34 - 3 * rs, z2], 0.7);
-                railTube([xr, mH + 34, z1 + 3], [xr, mH + 34 - 3 * rs, z2 - 3], 0.8);
+                // posts flat against the side face, anchored with stubs
+                railTube([rx2, y1 - 16, z1], [rx2, y1 + 32, z1], 0.7);
+                railTube([rx2, y2 - 16, z2], [rx2, y2 + 32, z2], 0.7);
+                for (const [yy, zz] of [[y1 - 13, z1], [y1 + 4, z1], [y2 - 13, z2], [y2 + 4, z2]])
+                    railTube([rx2, yy, zz], [sideX + 0.6, yy, zz], 0.5);
+                // sloped top rail following the flight
+                railTube([rx2, y1 + 33, z1 + 6], [rx2, y2 + 33, z2 - 6], 0.8);
+                // guard rail on the deck along the FRONT edge of the mikvah,
+                // running up to where the stairs begin
+                const gy0 = fT, gh = 33, gz = wz + 3.5;
+                const gx0 = -wx + 2, gx1 = sideX - 3;
+                if (gx1 - gx0 > 20) {
+                    for (const px3 of [gx0, (gx0 + gx1) / 2, gx1])
+                        railTube([px3, gy0, gz], [px3, gy0 + gh, gz], 0.7);
+                    railTube([gx0 - 1, gy0 + gh + 0.8, gz], [gx1 + 1, gy0 + gh + 0.8, gz], 0.8);
+                    railTube([gx0, gy0 + gh * 0.55, gz], [gx1, gy0 + gh * 0.55, gz], 0.45);
+                }
             }
             // potted plants in the back corners
             for (const s of [1, -1]) {
