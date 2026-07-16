@@ -161,6 +161,17 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
 #mhead .back:hover { text-decoration: underline; }
 #mhead h1 { margin: 6px 0 2px; font-size: 1.12em; font-weight: 700; letter-spacing: -0.01em; }
 #mhead .mtag { font-size: 0.74em; color: var(--muted); }
+#dimsBtn {
+    margin-top: 8px;
+    font-family: inherit; font-size: 0.76em; font-weight: 600;
+    color: var(--accent-dark);
+    background: #eaf2fa;
+    border: 1px solid #cfe0ef; border-radius: 16px;
+    padding: 4px 12px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+#dimsBtn:hover { border-color: var(--accent); background: #dfecf8; }
+#dimsBtn.open { background: var(--accent); border-color: var(--accent); color: #fff; }
 #mdisclaimer {
     font-size: 0.68em; color: #8a2f2a; line-height: 1.45;
     padding: 8px 20px; border-bottom: 1px solid var(--line);
@@ -356,6 +367,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     #mhead { padding: 8px 16px 4px; }
     #mhead h1 { font-size: 0.95em; margin: 2px 0 0; }
     #mhead .mtag { display: none; }
+    #dimsBtn { margin-top: 5px; padding: 3px 10px; }
     #mdisclaimer { padding: 5px 16px; font-size: 0.62em; }
     #stepChips {
         flex-wrap: nowrap; overflow-x: auto;
@@ -391,7 +403,8 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     <header id="mhead">
         <a class="back" href="../index.html">&larr; All Guides</a>
         <h1>Full Parametric 3D Model</h1>
-        <div class="mtag">Defaults are an 8&prime;&times;8&prime; mikvah &mdash; every dimension is adjustable for bigger or smaller builds.</div>
+        <div class="mtag">A walkthrough of the full build, shown at the standard 8&prime;&times;8&prime; size.</div>
+        <button id="dimsBtn">&#128207; 8&prime; &times; 8&prime; &mdash; change dimensions</button>
     </header>
     <div id="stepChips"></div>
     <div id="mdisclaimer">Visual guide for understanding only &mdash; not construction documents. Confirm every detail with your Rov and an expert mikvah builder before building.</div>
@@ -2132,10 +2145,6 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     const BASE = { ground: 1, gravel: 1, floor: 1, keys: 1, waterstop: 1, walls: 1, hlm: 1, foam: 1 };
 
     const MSTEPS = [
-        { title: 'Dimensions', h2: 'Set the Dimensions',
-          html: '<p>Start with the defaults — an <b>8\u2032 \u00d7 8\u2032 mikvah</b> — or edit any value below. Everything downstream recalculates automatically (cradle size, bor length, depth from ledge, volume).</p><p>The finished mikvah is shown so you can see your changes live. Then press <b>Next</b> to walk through how it gets built.</p>',
-          flags: ALL_ON, mount: dimsWrap,
-          cam: { pos: [280, 350, 280], tgt: [0, 40, 0] } },
         { title: 'Site Prep', h2: 'Prepare the Site',
           html: '<p>It starts empty: excavate, level the ground, and lay a bed of <b>gravel</b> — the base everything else sits on.</p><div class="callout">Want to watch the whole build assemble itself? Jump to the last step, <b>Explore</b>, and press <b>\u25b6 Play build animation</b>.</div>',
           flags: { ground: 1, gravel: 1 },
@@ -2178,17 +2187,46 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     const bodyEl = document.getElementById('mpanelBody');
     const prevBtn = document.getElementById('mPrev');
     const nextBtn = document.getElementById('mNext');
+    const dimsBtn = document.getElementById('dimsBtn');
+    let dimsOpen = false;
+
+    dimsBtn.addEventListener('click', () => {
+        if (dimsOpen) { goToStep(mStep); return; }
+        dimsOpen = true;
+        Object.keys(ALL_ON).forEach(k => vis[k] = true);   // show the finished mikvah while editing
+        renderStep();
+        refreshUI();
+        build();
+        flyTo({ pos: [280, 350, 280], tgt: [0, 40, 0] });
+    });
 
     function renderStep() {
         chipsEl.innerHTML = '';
         MSTEPS.forEach((st, i) => {
             const b = document.createElement('button');
-            b.className = 'step-chip' + (i === mStep ? ' active' : i < mStep ? ' done' : '');
+            b.className = 'step-chip' + (!dimsOpen && i === mStep ? ' active' : i < mStep ? ' done' : '');
             b.textContent = (i + 1) + '. ' + st.title;
             b.addEventListener('click', () => goToStep(i));
             chipsEl.appendChild(b);
         });
         chipsEl.querySelector('.active')?.scrollIntoView({ block: 'nearest', inline: 'center' });
+        dimsBtn.classList.toggle('open', dimsOpen);
+        if (dimsOpen) {
+            // the dimensions editor lives in this side drawer, not in the
+            // step flow — the guide itself always opens on the 8'x8' default
+            bodyEl.innerHTML = '<div class="step-num">Custom build</div><h2>Mikvah Dimensions</h2>'
+                + '<p>The guide shows the standard <b>8′ × 8′ mikvah</b>. Change any value below — everything downstream recalculates automatically (cradle size, bor length, depth from ledge, volume), and if something stops fitting, you’ll be asked what to do.</p>';
+            const back = document.createElement('button');
+            back.className = 'upd';
+            back.innerHTML = '← Back to the guide';
+            back.addEventListener('click', () => goToStep(mStep));
+            bodyEl.appendChild(back);
+            bodyEl.appendChild(dimsWrap);
+            bodyEl.scrollTop = 0;
+            prevBtn.disabled = true;
+            nextBtn.disabled = true;
+            return;
+        }
         const st = MSTEPS[mStep];
         bodyEl.innerHTML = `<div class="step-num">Step ${mStep + 1} of ${MSTEPS.length}</div><h2>${st.h2}</h2>${st.html}`;
         if (st.mount) bodyEl.appendChild(st.mount);
@@ -2197,6 +2235,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         nextBtn.disabled = mStep === MSTEPS.length - 1;
     }
     function goToStep(i) {
+        dimsOpen = false;
         mStep = Math.max(0, Math.min(MSTEPS.length - 1, i));
         const st = MSTEPS[mStep];
         if (!st.keepVis && st.flags) {
@@ -2215,6 +2254,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
     nextBtn.addEventListener('click', () => goToStep(mStep + 1));
     document.addEventListener('keydown', e => {
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        if (dimsOpen) return;
         if (e.key === 'ArrowRight') goToStep(mStep + 1);
         if (e.key === 'ArrowLeft') goToStep(mStep - 1);
     });
@@ -2236,6 +2276,8 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         roCu.textContent = volStats.cuIn;
         roGal.textContent = volStats.gallons;
         roLit.textContent = volStats.liters;
+        const db = document.getElementById('dimsBtn');
+        if (db) db.innerHTML = `📏 ${formatDisplay(params.mikIntWidth)} × ${formatDisplay(params.mikIntLength)} — change dimensions`;
     }
 
     // --- 11. THE RESOLVER: notices problems, asks, offers fixes ---
