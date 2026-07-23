@@ -1790,7 +1790,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
                     const rA = xc - 2, rB = xc + 2;
                     const face = fIn - 1.4, rec = fIn + 0.9, backP = fIn - 3.0;
                     const xW = rIn - params.stairLen + 3, xE = rIn - 4;
-                    const top = iyMin + 2;
+                    const top = iyMin - 4;   // whole front coil sits a bit lower
                     const pts = [[rA, penY, rec], [rA, top, rec], [rA, top, face], [xE, top, face]];
                     let y = top, end = 'E', guard = 0;
                     while (y - 6 > mFH + 5 && guard++ < 20) {

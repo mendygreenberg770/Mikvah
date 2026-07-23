@@ -1012,13 +1012,13 @@ function buildCoil(wallSide) {
         // up); the recess sits near the open edge of the steps
         const xE = 44, xW = 15;
         pts = [
-            [s.riserA, D.penY, rec], [s.riserA, 88, rec], [s.riserA, 88, face],
-            [xE, 88, face], [xE, 82, face], [xW, 82, face], [xW, 76, face],
-            [xE, 76, face], [xE, 70, face], [xW, 70, face], [xW, 64, face],
-            [xE, 64, face], [xE, 58, face], [xW, 58, face],
+            [s.riserA, D.penY, rec], [s.riserA, 82, rec], [s.riserA, 82, face],
+            [xE, 82, face], [xE, 76, face], [xW, 76, face], [xW, 70, face],
+            [xE, 70, face], [xE, 64, face], [xW, 64, face], [xW, 58, face],
+            [xE, 58, face], [xE, 52, face], [xW, 52, face],
             // return jumper — a plane in front of the rows, back up to the recess
-            [xW, 58, back], [xW, 88, back], [s.riserB, 88, back],
-            [s.riserB, 88, rec], [s.riserB, D.penY, rec]
+            [xW, 52, back], [xW, 82, back], [s.riserB, 82, back],
+            [s.riserB, 82, rec], [s.riserB, D.penY, rec]
         ];
         addPipe(g, pts, R, M.copper);
         // through the wall — from there they run on to the heating equipment
