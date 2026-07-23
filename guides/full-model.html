@@ -818,7 +818,7 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
         stairLandingLen: 42,   // Length (Front-Back span)
 
         // Heating coils
-        coilWall: 'Front wall', // 'Front wall' (straight serpentine) or 'Side wall' (follows the steps)
+        coilWall: 'Side wall', // 'Front wall' (straight serpentine) or 'Side wall' (follows the steps) — side is the default
 
         // Toggles
         excludeFoam: true, // Default True
@@ -1638,8 +1638,10 @@ body { margin: 0; overflow: hidden; background-color: #eef1f4; font-family: 'Int
             };
             const soffTopW = (mH - params.stairFirstDrop) - params.stairRise;
             const penYW = Math.min(mH - 4, mFH + 55.5);
-            const iy0 = soffTopW - 7, iy1 = Math.min(mH - 2, penYW + 3);
             const frontCoil = params.coilWall === 'Front wall';
+            // on the front wall the indent starts a bit lower, so it clearly
+            // shows below the stair soffit
+            const iy0 = soffTopW - (frontCoil ? 13 : 7), iy1 = Math.min(mH - 2, penYW + 3);
             const rInW = realIntW / 2, fInW = realIntL / 2;
             const xcW = rInW - params.stairLen + 6, zcW = fInW - 6;
 

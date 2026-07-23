@@ -284,8 +284,8 @@ body {
             <div id="voBody">
             <div class="group" style="border-top:none; margin-top:0; padding-top:0;">
                 <div class="group-label">Coil Wall</div>
-                <label class="row"><input type="radio" name="coilWall" value="N" checked> Front wall — straight serpentine</label>
-                <label class="row"><input type="radio" name="coilWall" value="E"> Side wall — follows the steps</label>
+                <label class="row"><input type="radio" name="coilWall" value="N"> Front wall — straight serpentine</label>
+                <label class="row"><input type="radio" name="coilWall" value="E" checked> Side wall — follows the steps</label>
             </div>
             <div class="group">
                 <label class="row"><input type="checkbox" id="chkHideStairs"> Hide stairs (peek underneath)</label>
@@ -379,11 +379,11 @@ function indentSpec(wallSide) {
     // where the coil's pipes pop out into the under-stair void — it does NOT
     // run down toward the bottom of the bor tevila.
     if (wallSide === 'N') {
-        // north wall: 9" wide, 2.5" deep, from ~86" (just under the first
+        // front wall: 9" wide, 2.5" deep, from ~80" (a bit below the first
         // step at the wall) up to 106" (above the 99" water line). Placed
         // near the OPEN edge of the steps — away from the side wall — so
         // it's easy to see when peeking under the flight.
-        return { axis: 'Z', min1: 13, max1: 22, yMin: 86, yMax: 106,
+        return { axis: 'Z', min1: 13, max1: 22, yMin: 80, yMax: 106,
                  face: D.inR, depth: 2.5, riserA: 15.5, riserB: 19.5 };
     }
     // east wall: same recess near the north corner (soffit is 85.5"-92" there)
@@ -1207,7 +1207,7 @@ const STEPS = [
         </ul>
         <p>The block-out is about <span class="dim">9&Prime;</span> wide,
         <span class="dim">2&frac12;&Prime;</span> thick, and runs only from just under the
-        future first step (about <span class="dim">86&Prime;</span>) up to
+        future first step (about <span class="dim">${state.coilWall === 'N' ? 80 : 84}&Prime;</span>) up to
         <span class="dim">106&Prime;</span> — from below the water line to above it.</p>`,
     flags: { site: 1, foam: 1, rebar: 1, forms: 1, styro: 1 },
     cam: () => state.coilWall === 'N'
@@ -1267,7 +1267,7 @@ const STEPS = [
         <p>The forms come off and the styrofoam is dug out. What remains in the
         ${wallName()} wall is a clean <strong>recessed channel — the indent</strong>:
         <span class="dim">9&Prime;</span> wide, <span class="dim">2&frac12;&Prime;</span> deep,
-        running only from just under the first step (about <span class="dim">86&Prime;</span>)
+        running only from just under the first step (about <span class="dim">${state.coilWall === 'N' ? 80 : 84}&Prime;</span>)
         up to <span class="dim">106&Prime;</span>. It deliberately does <em>not</em> continue
         down toward the bottom of the bor tevila — the coil itself will simply hang on the
         wall inside the void, and only its pipes need the recess.</p>
@@ -1419,7 +1419,7 @@ const STEPS = [
    ========================================================================= */
 const state = {
     step: 0,
-    coilWall: 'N',
+    coilWall: 'E',
     hideStairs: false,
     showLabels: true,
     coilZoom: false
